@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FiGrid, FiLink, FiList, FiMessageCircle, FiShare2, FiZap } from 'react-icons/fi';
+import { FiGrid, FiLink, FiList, FiMessageCircle, FiShare2 } from 'react-icons/fi';
 import {
   b64urlDecode,
+  b64urlEncode,
   canCloneHere,
   cloneShareHere,
   discountPct,
@@ -280,32 +281,53 @@ export default function App() {
     }
   };
 
+  // Un solo "Copiar link": decide solo.
+  // - Si ya estamos en un ?c= corto, lo reutiliza.
+  // - Lista chica (URL < 1800): link con datos incluidos, sin backend.
+  // - Lista grande + backend: guarda online y da link corto.
+  // - Lista grande sin backend: copia el largo igual y avisa.
   const copyLink = async (): Promise<boolean> => {
-    const url = window.location.href;
-    try {
-      await navigator.clipboard.writeText(url);
-      notify('Link copiado.');
-      return true;
-    } catch {
-      notify('No pude copiar al portapapeles.', true);
-      return false;
-    }
-  };
-
-  const saveOnline = async (): Promise<boolean> => {
     if (!share) return false;
-    notify('Guardando online…');
+    const qc = new URLSearchParams(window.location.search).get('c');
+    if (qc && isShortCode(qc)) {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        notify('Link copiado.');
+        return true;
+      } catch {
+        notify('No pude copiar al portapapeles.', true);
+        return false;
+      }
+    }
+    const hashLink =
+      window.location.origin + window.location.pathname + '#c=' + b64urlEncode(share);
+    if (hashLink.length <= 1800) {
+      try {
+        await navigator.clipboard.writeText(hashLink);
+        notify('Link copiado.');
+        return true;
+      } catch {
+        notify('No pude copiar al portapapeles.', true);
+        return false;
+      }
+    }
+    if (!backendReady) {
+      try {
+        await navigator.clipboard.writeText(hashLink);
+        notify('Link copiado (es largo: con backend saldría corto).');
+        return true;
+      } catch {
+        notify('No pude copiar al portapapeles.', true);
+        return false;
+      }
+    }
+    notify('Lista grande: guardando online…');
     try {
       const code = await saveListOnline(share);
       setHistory(recordHistory(share, 'online', code));
       const url = window.location.origin + window.location.pathname + '?c=' + code;
-      try {
-        await navigator.clipboard.writeText(url);
-        notify('Link corto copiado: ' + code);
-      } catch {
-        notify('Tu link corto: ' + code, true);
-        return false;
-      }
+      await navigator.clipboard.writeText(url);
+      notify('Link corto copiado: ' + code);
       return true;
     } catch (e) {
       notify('No pude guardar online: ' + (e as Error).message, true);
@@ -580,11 +602,6 @@ export default function App() {
           <button className="sheet-opt" onClick={() => runShare(copyText)}>
             <FiMessageCircle aria-hidden="true" /> Copiar como texto
           </button>
-          {backendReady && (
-            <button className="sheet-opt" onClick={() => runShare(saveOnline)}>
-              <FiZap aria-hidden="true" /> Link corto online
-            </button>
-          )}
           {canNativeShare && (
             <button className="sheet-opt" onClick={() => runShare(nativeShare)}>
               <FiShare2 aria-hidden="true" /> Compartir con…
