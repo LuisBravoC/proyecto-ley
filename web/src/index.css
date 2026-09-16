@@ -104,38 +104,44 @@ section { scroll-margin-top: 72px; }
   white-space: nowrap;
 }
 
-/* Drawer */
+/* Menú desplegable integrado al topbar */
 .overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 30; }
-.drawer {
-  position: fixed;
-  top: 0;
+.menu-wrap { position: relative; }
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
   left: 0;
-  bottom: 0;
-  width: min(300px, 84vw);
+  min-width: 210px;
   background: var(--superficie);
-  z-index: 31;
-  padding: 16px 12px;
+  border: 1px solid var(--linea);
+  border-radius: 14px;
+  padding: 6px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  transform: translateX(-105%);
-  transition: transform 0.2s ease;
+  gap: 2px;
   box-shadow: var(--sombra);
+  z-index: 25;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.98);
+  transform-origin: top left;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }
-.drawer.open { transform: translateX(0); }
-.drawer button {
+.dropdown.open { opacity: 1; transform: none; pointer-events: auto; }
+.dropdown button {
   text-align: left;
-  font-size: 16px;
-  padding: 12px;
+  font-size: 15px;
+  padding: 11px 12px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   background: transparent;
   color: var(--tinta);
   cursor: pointer;
-  min-height: 52px;
+  min-height: 0;
   margin: 0;
+  white-space: nowrap;
 }
-.drawer button:active { background: var(--caja); }
+.dropdown button:hover { background: var(--caja); }
 
 /* Modal */
 .modal {
@@ -296,7 +302,7 @@ button {
 }
 button.primary { background: var(--verde-osc); color: #fff; border-color: var(--verde-osc); }
 [data-theme='dark'] button.primary { background: var(--verde); border-color: var(--verde); color: #06130a; }
-button:focus-visible, .menu-btn:focus-visible, .icon-btn:focus-visible, .drawer button:focus-visible {
+button:focus-visible, .menu-btn:focus-visible, .icon-btn:focus-visible, .dropdown button:focus-visible {
   outline: 2px solid var(--verde);
   outline-offset: 2px;
 }

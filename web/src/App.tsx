@@ -393,16 +393,28 @@ export default function App() {
   return (
     <>
       <header className="topbar">
-        <button
-          className="menu-btn"
-          aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((v) => !v)}
+        <div
+          className="menu-wrap"
+          onMouseEnter={() => setMenuOpen(true)}
+          onMouseLeave={() => setMenuOpen(false)}
         >
-          <span />
-          <span />
-          <span />
-        </button>
+          <button
+            className="menu-btn"
+            aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+            aria-expanded={menuOpen}
+            aria-haspopup="menu"
+            onClick={() => setMenuOpen((v) => !v)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+          <nav className={`dropdown${menuOpen ? ' open' : ''}`} aria-hidden={!menuOpen}>
+            <button onClick={goHome}>Inicio</button>
+            <button onClick={goHistorial}>Historial</button>
+            <button onClick={goAyuda}>Cómo funciona</button>
+          </nav>
+        </div>
         <div className="topbar-title">
           <b>Mi lista Casa Ley</b>
           {route === 'home' && share?.by && <span className="muted"> · de {share.by}</span>}
@@ -424,21 +436,15 @@ export default function App() {
         </div>
       </header>
 
-      {(menuOpen || modalOpen || shareOpen) && (
+      {(modalOpen || shareOpen) && (
         <div
           className="overlay"
           onClick={() => {
-            setMenuOpen(false);
             setModalOpen(false);
             setShareOpen(false);
           }}
         />
       )}
-      <nav className={`drawer${menuOpen ? ' open' : ''}`} aria-hidden={!menuOpen}>
-        <button onClick={goHome}>Inicio</button>
-        <button onClick={goHistorial}>Historial</button>
-        <button onClick={goAyuda}>Cómo funciona</button>
-      </nav>
 
       {modalOpen && (
         <div className="modal" role="dialog" aria-modal="true" aria-label="Abrir código">
