@@ -195,28 +195,33 @@ async function refreshPersonal() {
   $('btnPersonal').style.display = p ? 'none' : '';
 }
 
+async function insertPersonal(share) {
+  const code = genCode(), key = genEditKey();
+  const total = Math.round(share.p.reduce((t, p) => t + Number(p[8] || 0), 0) * 100) / 100;
+  const res = await fetch(SUPABASE_URL + '/rest/v1/lists', {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON,
+      'Content-Type': 'application/json', 'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify({
+      code: code, branch: share.b || null, store_name: share.n || null,
+      creator_name: share.by || null, label: null, edit_key: await sha256Hex(key),
+      share: share, item_count: share.p.length, est_total: total,
+    }),
+  });
+  if (!res.ok) throw new Error('Supabase ' + res.status);
+  return { code: code, key: key };
+}
+
 $('btnPersonal').onclick = async () => {
   status('Leyendo carrito…');
   try {
     const r = await readCurrentCart();
     status('Creando tu lista…');
-    const code = genCode(), key = genEditKey();
-    const total = Math.round(r.share.p.reduce((t, p) => t + Number(p[8] || 0), 0) * 100) / 100;
-    const res = await fetch(SUPABASE_URL + '/rest/v1/lists', {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON,
-        'Content-Type': 'application/json', 'Prefer': 'return=minimal',
-      },
-      body: JSON.stringify({
-        code: code, branch: r.share.b || null, store_name: r.share.n || null,
-        creator_name: r.share.by || null, label: null, edit_key: await sha256Hex(key),
-        share: r.share, item_count: r.share.p.length, est_total: total,
-      }),
-    });
-    if (!res.ok) throw new Error('Supabase ' + res.status);
-    await personalSet({ code: code, key: key, on: true, lastSig: r.code });
-    status('Tu lista es ' + code + ' (auto ON).', 'ok');
+    const created = await insertPersonal(r.share);
+    await personalSet({ code: created.code, key: created.key, on: true, lastSig: r.code });
+    status('Tu lista es ' + created.code + ' (auto ON).', 'ok');
     refreshPersonal();
   } catch (e) { status(friendly(e), 'err'); }
 };
@@ -232,28 +237,44 @@ $('btnMyLink').onclick = async () => {
 };
 
 async function pushUpdate(code, key, share) {
-  const res = await fetch(SUPABASE_URL + '/functions/v1/update-list', {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ code: code, edit_key: key, share: share }),
-  });
-  if (!res.ok) {
+  try {
+    const res = await fetch(SUPABASE_URL + '/functions/v1/update-list', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ code: code, edit_key: key, share: share }),
+    });
+    if (res.ok) return { ok: true };
     const j = await res.json().catch(() => ({}));
-    throw new Error((j && j.error) || ('HTTP ' + res.status));
+    const err = String((j && j.error) || ('HTTP ' + res.status));
+    const notFound = res.status === 404 || /no editable|no encontrado/i.test(err);
+    return { ok: false, err: err, notFound: notFound };
+  } catch (e) {
+    return { ok: false, err: 'Sin conexión', notFound: false };
   }
 }
 
 $('btnSyncNow').onclick = async () => {
-  const p = await personalGet();
+  let p = await personalGet();
   if (!p) { status('Primero crea tu lista personal.', 'err'); return; }
   status('Leyendo carrito…');
   try {
     const r = await readCurrentCart();
     status('Sincronizando ' + p.code + '…');
-    await pushUpdate(p.code, p.key, r.share);
+    let up = await pushUpdate(p.code, p.key, r.share);
+    if (!up.ok && up.notFound) {
+      // El código murió: renace la personal con este carrito.
+      status('Recreando tu lista…');
+      const created = await insertPersonal(r.share);
+      p = { code: created.code, key: created.key, on: true, lastSig: r.code };
+      await personalSet(p);
+      refreshPersonal();
+      status('Nueva lista ' + p.code + ' (la anterior ya no existía).', 'ok');
+      return;
+    }
+    if (!up.ok) throw new Error(up.err);
     p.lastSig = r.code;
     await personalSet(p);
     status('Sincronizado: ' + p.code + ' con ' + r.count + ' producto(s).', 'ok');

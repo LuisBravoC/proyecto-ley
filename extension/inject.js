@@ -78,22 +78,13 @@
     }
     setLabel('Sincronizando…');
     try {
-      var res = await fetch(FN_URL, {
-        method: 'POST',
-        headers: {
-          'apikey': FN_ANON,
-          'Authorization': 'Bearer ' + FN_ANON,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ code: personal.code, edit_key: personal.key, share: built.share }),
-      });
-      if (!res.ok) {
-        var errText = 'Error ' + res.status;
-        try {
-          var ej = await res.json();
-          if (ej && ej.error) errText = String(ej.error);
-        } catch (e) { /* usa el HTTP */ }
-        setLabel(errText);
+      var up = await doUpdate(personal.code, personal.key, built.share);
+      if (!up.ok && up.notFound) {
+        // El código murió (borrado/expirado): renace la personal con este carrito.
+        setLabel('Recreando tu lista…');
+        personal = await createPersonal(built);
+      } else if (!up.ok) {
+        setLabel(up.err);
         done();
         return;
       }
@@ -216,6 +207,33 @@
   var FN_ANON = 'sb_publishable_3jDw8StQcSVaPxGIimaX5Q_-vSLzt5n'; // pública por diseño
   var pushing = false;
 
+  // Push con diagnóstico: distingue "código muerto" (404) de otros errores.
+  async function doUpdate(code, key, share) {
+    try {
+      var res = await fetch(FN_URL, {
+        method: 'POST',
+        headers: {
+          'apikey': FN_ANON,
+          'Authorization': 'Bearer ' + FN_ANON,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: code, edit_key: key, share: share }),
+      });
+      if (res.ok) return { ok: true };
+      var errText = 'Error ' + res.status, notFound = res.status === 404;
+      try {
+        var ej = await res.json();
+        if (ej && ej.error) {
+          errText = String(ej.error);
+          if (/no editable|no encontrado/i.test(errText)) notFound = true;
+        }
+      } catch (e) { /* usa el HTTP */ }
+      return { ok: false, err: errText, notFound: notFound };
+    } catch (e) {
+      return { ok: false, err: 'Sin conexión', notFound: false };
+    }
+  }
+
   async function autoTick() {
     if (document.hidden || pushing) return;
     try {
@@ -234,31 +252,27 @@
       if (built.code === cfg.lastSig) return; // sin cambios: nada que enviar
       pushing = true;
       setBtnState('Subiendo…');
-      try {
-        var res = await fetch(FN_URL, {
-          method: 'POST',
-          headers: {
-            'apikey': FN_ANON,
-            'Authorization': 'Bearer ' + FN_ANON,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ code: cfg.code, edit_key: cfg.key, share: built.share }),
-        });
-        if (!res.ok) {
-          var errText = 'Error ' + res.status;
+      var up = await doUpdate(cfg.code, cfg.key, built.share);
+      pushing = false;
+      if (!up.ok) {
+        if (up.notFound) {
+          // El código murió (borrado/expirado): renace la personal con este carrito.
+          setBtnState('Recreando…');
           try {
-            var ej = await res.json();
-            if (ej && ej.error) errText = String(ej.error);
-          } catch (e) { /* usa el HTTP */ }
-          setBtnState(errText, true);
-          return; // reintenta en el próximo ciclo
+            var fresh = await createPersonal(built);
+            cfg = fresh;
+            setBtnState('Nueva lista ✓');
+          } catch (e) {
+            setBtnState('Error al crear', true);
+          }
+        } else {
+          setBtnState(up.err, true);
         }
-        cfg.lastSig = built.code;
-        await chrome.storage.local.set({ leypersonal: cfg });
-        setBtnState('Sincronizado ✓');
-      } finally {
-        pushing = false;
+        return; // reintenta en el próximo ciclo
       }
+      cfg.lastSig = built.code;
+      await chrome.storage.local.set({ leypersonal: cfg });
+      setBtnState('Sincronizado ✓');
     } catch (e) { /* próximo ciclo */ }
   }
 
