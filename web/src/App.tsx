@@ -119,6 +119,50 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const openTimer = useRef<number | null>(null);
+  const closeTimer = useRef<number | null>(null);
+
+  // Apertura por proximidad (solo con mouse): entra a la zona → abre con
+  // retardo; sale de la zona → cierra con retardo. En táctil solo con toque.
+  const canHover = () =>
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(hover: hover)').matches;
+  const cancelHoverTimers = () => {
+    if (openTimer.current) {
+      window.clearTimeout(openTimer.current);
+      openTimer.current = null;
+    }
+    if (closeTimer.current) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+  const scheduleOpen = () => {
+    if (!canHover()) return;
+    if (closeTimer.current) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    if (menuOpen || openTimer.current) return;
+    openTimer.current = window.setTimeout(() => {
+      setMenuOpen(true);
+      openTimer.current = null;
+    }, 250);
+  };
+  const scheduleClose = () => {
+    if (!canHover()) return;
+    if (openTimer.current) {
+      window.clearTimeout(openTimer.current);
+      openTimer.current = null;
+    }
+    if (!menuOpen || closeTimer.current) return;
+    closeTimer.current = window.setTimeout(() => {
+      setMenuOpen(false);
+      closeTimer.current = null;
+    }, 300);
+  };
+  useEffect(() => () => cancelHoverTimers(), []);
   const [updateAvail, setUpdateAvail] = useState(false);
   const [route, setRoute] = useState<Route>(() => getRoute());
   const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
@@ -397,7 +441,12 @@ export default function App() {
           className="menu-btn"
           aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
           aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((v) => !v)}
+          onClick={() => {
+            cancelHoverTimers();
+            setMenuOpen((v) => !v);
+          }}
+          onMouseEnter={scheduleOpen}
+          onMouseLeave={scheduleClose}
         >
           <span />
           <span />
@@ -454,7 +503,12 @@ export default function App() {
       )}
 
       <div className="shell">
-        <aside className={`sidebar${menuOpen ? ' open' : ''}`} aria-hidden={!menuOpen}>
+        <aside
+          className={`sidebar${menuOpen ? ' open' : ''}`}
+          aria-hidden={!menuOpen}
+          onMouseEnter={scheduleOpen}
+          onMouseLeave={scheduleClose}
+        >
           <nav className="sidebar-inner" aria-label="Menú principal">
             <button onClick={goHome} className={route === 'home' ? 'active' : ''} aria-current={route === 'home' ? 'page' : undefined}>Inicio</button>
             <button onClick={goHistorial} className={route === 'historial' ? 'active' : ''} aria-current={route === 'historial' ? 'page' : undefined}>Historial</button>
