@@ -352,6 +352,18 @@ section { scroll-margin-top: 72px; }
   white-space: nowrap;
 }
 [data-theme='dark'] .dl-btn { background: var(--verde); color: #06130a; }
+.sheet input {
+  width: 100%;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--tinta);
+  background: var(--fondo);
+  border: 1px solid var(--linea);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 2px 0 8px;
+}
+.sheet label.muted { display: block; margin-top: 8px; }
 
 /* Barra compartir */
 .sharebar {

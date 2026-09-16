@@ -20,7 +20,14 @@ import {
   type ShareItem,
   type ShareV1,
 } from './lib/share';
-import { backendReady, isShortCode, loadListOnline, saveListOnline } from './lib/backend';
+import {
+  backendReady,
+  defaultLabel,
+  isShortCode,
+  loadListOnline,
+  saveListOnline,
+  type SnapshotMeta,
+} from './lib/backend';
 import { checkForUpdate, BUILD_LABEL, HOVER_CAPABLE } from './lib/version';
 import {
   clearHistory,
@@ -169,6 +176,8 @@ export default function App() {
   const [updateAvail, setUpdateAvail] = useState(false);
   const [route, setRoute] = useState<Route>(() => getRoute());
   const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
+  const [snapshot, setSnapshot] = useState<SnapshotMeta | null>(null);
+  const [shareLabel, setShareLabel] = useState('');
   const [theme, setTheme] = useState<Theme>(() => {
     try {
       return (localStorage.getItem('ley-theme') as Theme) || 'dark';
@@ -211,14 +220,17 @@ export default function App() {
       }
       notify('Cargando lista…');
       try {
-        const s = await loadListOnline(found.code);
+        const { share: s, meta } = await loadListOnline(found.code);
         setShare(s);
+        setSnapshot(meta);
         dismiss();
         setModalOpen(false);
         setInput('');
         setHistory(recordHistory(s, 'online', found.code));
         if (getRoute() !== 'home') window.location.hash = '#/';
       } catch (e) {
+        setShare(null);
+        setSnapshot(null);
         notify('No encontré ese código (' + (e as Error).message + ').');
       }
       return;
@@ -227,6 +239,7 @@ export default function App() {
       const s = b64urlDecode(code);
       if (!s || s.v !== 1 || !Array.isArray(s.p)) throw new Error('Código inválido.');
       setShare(s);
+      setSnapshot(null);
       dismiss();
       setModalOpen(false);
       setInput('');
@@ -252,12 +265,14 @@ export default function App() {
         }
         notify('Cargando lista…');
         try {
-          const s = await loadListOnline(qc);
+          const { share: s, meta } = await loadListOnline(qc);
           setShare(s);
+          setSnapshot(meta);
           dismiss();
           setHistory(recordHistory(s, 'online', qc.trim().toUpperCase()));
         } catch (e) {
           setShare(null);
+          setSnapshot(null);
           notify('No encontré ese código (' + (e as Error).message + ').');
         }
         return;
@@ -266,6 +281,7 @@ export default function App() {
         const { share: s } = parseShareFromLocation();
         if (s) {
           setShare(s);
+          setSnapshot(null);
           dismiss();
           // autosave=1 (botón inyectado en Casa Ley): guarda online y cae al ?c= corto.
           const wantAuto = window.location.hash.includes('autosave=1');
@@ -359,8 +375,10 @@ export default function App() {
     }
     notify('Guardando online…');
     try {
-      const code = await saveListOnline(share);
-      setHistory(recordHistory(share, 'online', code));
+      const label = shareLabel.trim() || defaultLabel();
+      const code = await saveListOnline(share, label);
+      setHistory(recordHistory(share, 'online', code, label));
+      setSnapshot({ label, savedAt: new Date().toISOString() });
       return window.location.origin + window.location.pathname + '?c=' + code;
     } catch (e) {
       notify('No pude guardar online: ' + (e as Error).message, true);
@@ -548,9 +566,9 @@ export default function App() {
             <button onClick={goHistorial} className={route === 'historial' ? 'active' : ''} aria-current={route === 'historial' ? 'page' : undefined}>Historial</button>
             <button onClick={goInstalar} className={route === 'instalar' ? 'active' : ''} aria-current={route === 'instalar' ? 'page' : undefined}>Instalar extensión</button>
             <button onClick={goAyuda} className={route === 'ayuda' ? 'active' : ''} aria-current={route === 'ayuda' ? 'page' : undefined}>Cómo funciona</button>
-           {/*<div className="sidebar-foot muted">
-              compilación {BUILD_LABEL}
-            </div>*/}
+            <div className="sidebar-foot muted">
+              compilación {BUILD_LABEL} · hover {HOVER_CAPABLE ? 'sí' : 'no'}
+            </div>
           </nav>
         </aside>
         <div className="content">
@@ -692,6 +710,7 @@ export default function App() {
               <>
                 <p className="meta-line muted">
                   {share.p.length} {share.p.length === 1 ? 'producto' : 'productos'}
+                  {snapshot?.label ? ` · Foto: ${snapshot.label}` : ''}
                   {storeName(share) ? ` · ${storeName(share)}` : ''} · Precios de referencia, pueden variar en
                   tienda.
                 </p>
@@ -744,6 +763,16 @@ export default function App() {
           <p className="muted">
             {share.p.length} {share.p.length === 1 ? 'producto' : 'productos'} · {money(shareTotal(share))}
           </p>
+          <label className="muted" htmlFor="share-label">
+            Nombre de la foto (opcional)
+          </label>
+          <input
+            id="share-label"
+            value={shareLabel}
+            onChange={(e) => setShareLabel(e.target.value)}
+            placeholder={defaultLabel()}
+            maxLength={60}
+          />
           <button className="sheet-opt" onClick={() => runShare(copyLink)}>
             <FiLink aria-hidden="true" /> Copiar link
           </button>
@@ -767,7 +796,7 @@ export default function App() {
 
       {route === 'home' && share && (
         <div className="sharebar" role="toolbar" aria-label="Compartir lista">
-          <button className="primary" onClick={() => setShareOpen(true)}>
+          <button className="primary" onClick={() => { setShareLabel(defaultLabel()); setShareOpen(true); }}>
             <FiShare2 aria-hidden="true" /> Compartir
           </button>
           {canCloneHere() && <button onClick={clone}>Clonar</button>}

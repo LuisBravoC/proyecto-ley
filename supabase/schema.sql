@@ -7,6 +7,7 @@ create table if not exists lists (
   branch text,
   store_name text,
   creator_name text, -- solo nombre de pila, opcional
+  label text, -- nombre de la foto ("Súper quincena"), opcional
   share jsonb not null,
   item_count int not null default 0,
   est_total numeric,
@@ -29,3 +30,4 @@ create index if not exists lists_code_idx on lists (code);
 
 -- Migración si ya creaste la tabla antes (corre una vez):
 -- alter table lists add column if not exists creator_name text;
+-- alter table lists add column if not exists label text;

@@ -17,12 +17,19 @@ export function isShortCode(s: unknown): s is string {
   return typeof s === 'string' && /^[A-Za-z0-9]{4,10}$/.test(s.trim());
 }
 
-export async function saveListOnline(share: ShareV1): Promise<string> {
+export function defaultLabel(): string {
+  const f = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+  return `Súper ${f}`;
+}
+
+// Guarda una foto del carrito tal como está. Devuelve el código corto.
+export async function saveListOnline(share: ShareV1, label?: string): Promise<string> {
   if (!supabase) throw new Error('Backend no configurado.');
   const row = {
     branch: share.b || null,
     store_name: share.n || null,
     creator_name: share.by || null,
+    label: label?.trim() || null,
     share,
     item_count: share.p.length,
     est_total: Math.round(shareTotal(share) * 100) / 100,
@@ -36,14 +43,27 @@ export async function saveListOnline(share: ShareV1): Promise<string> {
   throw new Error('No pude generar código, reintenta.');
 }
 
-export async function loadListOnline(code: string): Promise<ShareV1> {
+export interface SnapshotMeta {
+  label: string | null;
+  savedAt: string | null;
+}
+
+export async function loadListOnline(
+  code: string,
+): Promise<{ share: ShareV1; meta: SnapshotMeta }> {
   if (!supabase) throw new Error('Backend no configurado.');
   const { data, error } = await supabase
     .from('lists')
-    .select('share')
+    .select('share,label,created_at')
     .eq('code', code.trim().toUpperCase())
     .maybeSingle();
   if (error) throw error;
   if (!data) throw new Error('código no encontrado o expirado');
-  return data.share as ShareV1;
+  return {
+    share: data.share as ShareV1,
+    meta: {
+      label: (data.label as string | null) ?? null,
+      savedAt: (data.created_at as string | null) ?? null,
+    },
+  };
 }

@@ -35,14 +35,20 @@ function persist(list: HistoryEntry[]): void {
   }
 }
 
-export function recordHistory(share: ShareV1, kind: HistoryEntry['kind'], code: string): HistoryEntry[] {
+export function recordHistory(
+  share: ShareV1,
+  kind: HistoryEntry['kind'],
+  code: string,
+  title?: string,
+): HistoryEntry[] {
   const entry: HistoryEntry = {
     kind,
     code,
     title:
+      title ||
       `${share.p.length} ${share.p.length === 1 ? 'producto' : 'productos'}` +
-      (share.by ? ` · de ${share.by}` : '') +
-      (storeName(share) ? ` · ${storeName(share)}` : ''),
+        (share.by ? ` · de ${share.by}` : '') +
+        (storeName(share) ? ` · ${storeName(share)}` : ''),
     count: share.p.length,
     total: shareTotal(share),
     when: Date.now(),
