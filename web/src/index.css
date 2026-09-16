@@ -178,7 +178,19 @@ section { scroll-margin-top: 72px; }
 .card-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .price-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 
-/* Vista cuadrícula */
+/* Filas estilo carrito: compactas, total a la derecha */
+.row-card { padding: 10px 12px; margin: 8px 0; gap: 10px; }
+.row-card img { width: 56px; height: 56px; }
+.row-card .pname { -webkit-line-clamp: 1; min-height: auto; font-size: 0.95em; }
+.row-total {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  flex-shrink: 0;
+}
+.row-total s { text-decoration: line-through; }
 .view-toggle {
   display: inline-flex;
   background: var(--caja);

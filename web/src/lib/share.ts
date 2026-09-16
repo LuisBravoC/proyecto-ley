@@ -95,6 +95,12 @@ export function discountPct(r: ShareItem): number | null {
   return Math.round((1 - s / n) * 100);
 }
 
+// Total de línea a precio normal (para tachar cuando hay oferta).
+export function lineTotalNormal(r: ShareItem): number {
+  const n = Number(r[4]) || 0;
+  return r[5] === 'KG' ? (n * Number(r[1])) / 1000 : n * Number(r[1]);
+}
+
 export function qtyText(r: ShareItem): string {
   const qty = r[1];
   const unit = r[5] || 'PZ';

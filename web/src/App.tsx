@@ -5,6 +5,7 @@ import {
   cloneShareHere,
   discountPct,
   hasOffer,
+  lineTotalNormal,
   imgUrl,
   money,
   parseShareFromLocation,
@@ -48,29 +49,39 @@ function ProductCard({ r, grid }: { r: ShareItem; grid: boolean }) {
   const src = imgUrl(r[6]);
   const offer = hasOffer(r);
   const pct = discountPct(r);
-  return (
-    <article className={`card${grid ? ' grid-card' : ''}`}>
-      {src && !hideImg && <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />}
-      <div className="card-body">
-        <b className="pname">{r[2]}</b>
-        <span className="muted">{qtyText(r)}</span>
-        <div className="price-row">
-          <b>{money(r[8])}</b>
-          {offer && grid && pct != null && <span className="pill">−{pct}%</span>}
-          {offer ? (
-            grid ? (
+  if (grid) {
+    return (
+      <article className="card grid-card">
+        {src && !hideImg && <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />}
+        <div className="card-body">
+          <b className="pname">{r[2]}</b>
+          <span className="muted">{qtyText(r)}</span>
+          <div className="price-row">
+            <b>{money(r[8])}</b>
+            {offer && pct != null && <span className="pill">−{pct}%</span>}
+            {offer ? (
               <span className="muted small">
                 {money(r[3])} c/u · antes {money(r[4])}
               </span>
             ) : (
-              <span className="offer">
-                Oferta {money(r[3])} c/u (antes {money(r[4])})
-              </span>
-            )
-          ) : (
-            <span className="muted">{money(unitPrice(r))} c/u</span>
-          )}
+              <span className="muted">{money(unitPrice(r))} c/u</span>
+            )}
+          </div>
         </div>
+      </article>
+    );
+  }
+  return (
+    <article className="card row-card">
+      {src && !hideImg && <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />}
+      <div className="card-body">
+        <b className="pname">{r[2]}</b>
+        <span className="muted small">{qtyText(r)}</span>
+      </div>
+      <div className="row-total">
+        <b>{money(r[8])}</b>
+        {offer && <s className="muted small">{money(lineTotalNormal(r))}</s>}
+        {offer && pct != null && <span className="pill">−{pct}%</span>}
       </div>
     </article>
   );
@@ -405,10 +416,10 @@ export default function App() {
                   ))}
                 </div>
                 <div className="total-card">
-                  <span>Total aproximado</span>
+                  <span className="muted">Subtotal</span>
                   <b>{money(shareTotal(share))}</b>
                 </div>
-                <p className="muted">Puede variar en tienda.</p>
+                <p className="muted">El total final se confirma antes de pagar.</p>
               </>
             )}
           </>
