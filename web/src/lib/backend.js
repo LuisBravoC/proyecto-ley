@@ -24,7 +24,7 @@ export async function saveListOnline(share) {
     store_name: share.n || null,
     share,
     item_count: share.p.length,
-    est_total: shareTotal(share),
+    est_total: Math.round(shareTotal(share) * 100) / 100,
   };
   for (let i = 0; i < 5; i++) {
     const code = genCode();
