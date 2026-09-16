@@ -502,6 +502,12 @@ export default function App() {
         </div>
       )}
 
+      <div
+        className="edge-zone"
+        aria-hidden="true"
+        onMouseEnter={scheduleOpen}
+        onMouseLeave={scheduleClose}
+      />
       <div className="shell">
         <aside
           className={`sidebar${menuOpen ? ' open' : ''}`}

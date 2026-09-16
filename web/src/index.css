@@ -104,6 +104,15 @@ section { scroll-margin-top: 72px; }
   white-space: nowrap;
 }
 
+/* Zona invisible del borde izquierdo: acercar el puntero despliega el menú */
+.edge-zone {
+  position: fixed;
+  left: 0;
+  top: 65px;
+  bottom: 0;
+  width: 14px;
+  z-index: 26;
+}
 /* Sidebar que empuja el contenido (debajo del topbar, no encima) */
 .shell { display: flex; align-items: flex-start; }
 .content { flex: 1; min-width: 0; }
@@ -344,6 +353,7 @@ textarea {
   transform: translateX(-50%);
   bottom: calc(84px + env(safe-area-inset-bottom));
   z-index: 40;
+  pointer-events: none;
   max-width: min(480px, calc(100vw - 32px));
   background: var(--tinta);
   color: var(--fondo);
