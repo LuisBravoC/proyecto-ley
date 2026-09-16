@@ -4,6 +4,7 @@ import {
   money, parseShareFromLocation, qtyText, shareToWhatsApp, shareTotal,
   storeName, unitPrice,
 } from './lib/share.js';
+import { backendReady, isShortCode, loadListOnline, saveListOnline } from './lib/backend.js';
 
 function ProductCard({ r }) {
   const [hideImg, setHideImg] = useState(false);
@@ -42,7 +43,26 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const boot = () => {
+    const boot = async () => {
+      // Link corto de backend: ?c=ABC123
+      const qc = new URLSearchParams(window.location.search).get('c');
+      if (qc && isShortCode(qc)) {
+        if (!backendReady) {
+          setShare(null);
+          setMsg('Este link corto necesita backend (aún no configurado en esta página).');
+          return;
+        }
+        setMsg('Cargando lista…');
+        try {
+          const s = await loadListOnline(qc);
+          setShare(s);
+          setMsg('');
+        } catch (e) {
+          setShare(null);
+          setMsg('No encontré ese código (' + e.message + ').');
+        }
+        return;
+      }
       try {
         const { share: s } = parseShareFromLocation();
         if (s) { setShare(s); setMsg(''); }
@@ -67,6 +87,17 @@ export default function App() {
     const url = window.location.href;
     try { await navigator.clipboard.writeText(url); setMsg('Link copiado.'); }
     catch { setMsg('No pude autocopiar. Copia la URL del navegador.'); }
+  };
+
+  const saveOnline = async () => {
+    if (!share) return;
+    setMsg('Guardando online…');
+    try {
+      const code = await saveListOnline(share);
+      const url = window.location.origin + window.location.pathname + '?c=' + code;
+      try { await navigator.clipboard.writeText(url); setMsg('Link corto copiado:\n' + url); }
+      catch { setMsg('Tu link corto:\n' + url); }
+    } catch (e) { setMsg('No pude guardar online: ' + e.message); }
   };
 
   const clone = async () => {
@@ -97,6 +128,7 @@ export default function App() {
       <button onClick={() => load(input)}>Ver lista</button>
       <button onClick={copyText}>Copiar como texto</button>
       <button onClick={copyLink}>Copiar link</button>
+      {backendReady && <button onClick={saveOnline}>Guardar online (link corto)</button>}
       <button className="primary" onClick={clone} style={{ display: canCloneHere() ? '' : 'none' }}>Clonar en mi carrito</button>
       {!canCloneHere() && share && (
         <p className="muted">¿Es tu lista? Para pasarla a tu carrito usa la extensión estando en tusuper.</p>

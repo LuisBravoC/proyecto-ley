@@ -1,5 +1,6 @@
 web/node_modules/
 web/dist/
+web/.env.local
 # Notas internas: solo locales, no van al repo
 investigacion.md
 plan-backend.md
