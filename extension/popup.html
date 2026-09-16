@@ -3,26 +3,92 @@
 <head>
 <meta charset="utf-8">
 <style>
-  body{width:340px;font-family:system-ui,Roboto,Arial,sans-serif;margin:0;padding:14px;color:#222}
-  h3{margin:0 0 8px;font-size:15px}
-  button{width:100%;padding:10px;margin:4px 0;border-radius:10px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:14px}
-  button.primary{background:#0a7b2e;color:#fff;border-color:#0a7b2e}
-  button:disabled{opacity:.5;cursor:wait}
-  textarea{width:100%;box-sizing:border-box;min-height:56px;margin-top:6px;font-size:12px}
-  #status{background:#f4f4f4;border-radius:8px;padding:8px;margin-top:8px;font-size:13px;white-space:pre-wrap}
-  #status.err{background:#fdecea}
-  #status.ok{background:#e7f4ea}
-  .hint{font-size:12px;color:#666;margin-top:8px}
+  :root { color-scheme: dark; }
+  body {
+    width: 340px;
+    font-family: system-ui, Roboto, Arial, sans-serif;
+    margin: 0;
+    padding: 14px;
+    color: #f2f4f6;
+    background: #121417;
+  }
+  h3 { margin: 0 0 4px; font-size: 15px; }
+  .sub { color: #a7b0ba; font-size: 12px; margin: 0 0 10px; }
+  .summary {
+    background: #1b1e23;
+    border: 1px solid #2b3138;
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+  .summary b { font-size: 15px; }
+  button {
+    width: 100%;
+    padding: 11px;
+    margin: 4px 0;
+    border-radius: 12px;
+    border: 1px solid #2b3138;
+    background: #1b1e23;
+    color: #f2f4f6;
+    cursor: pointer;
+    font-size: 14px;
+    min-height: 44px;
+  }
+  button.primary { background: #35b558; border-color: #35b558; color: #06130a; font-weight: 700; }
+  button:disabled { opacity: 0.5; cursor: wait; }
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 52px;
+    margin-top: 6px;
+    font-size: 12px;
+    font-family: inherit;
+    color: #f2f4f6;
+    background: #1b1e23;
+    border: 1px solid #2b3138;
+    border-radius: 10px;
+    padding: 8px;
+  }
+  #status {
+    background: #1b1e23;
+    border-radius: 10px;
+    padding: 8px 10px;
+    margin-top: 8px;
+    font-size: 13px;
+    white-space: pre-wrap;
+  }
+  #status.err { background: #4a1713; }
+  #status.ok { background: #12351f; }
+  .foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    font-size: 11px;
+    color: #a7b0ba;
+  }
+  .foot button {
+    width: auto;
+    min-height: 0;
+    padding: 6px 10px;
+    font-size: 12px;
+    margin: 0;
+  }
 </style>
 </head>
 <body>
 <h3>Mi lista Casa Ley</h3>
+<p class="sub" id="summary">Leyendo carrito…</p>
 <button id="btnOpen" class="primary">Abrir mi carrito en página</button>
 <button id="btnCopy">Copiar link para compartir</button>
 <textarea id="importInput" placeholder="Pegar link #c=... para clonar aquí"></textarea>
 <button id="btnClone">Clonar lista en este carrito</button>
 <div id="status">Listo.</div>
-<p class="hint">Lee solo en tusuper.casaley.com.mx. El link lleva productos, nunca tu sesión.</p>
+<div class="foot">
+  <span id="ver">v…</span>
+  <button id="btnHist" title="Ver historial en la página">Historial</button>
+</div>
 <script src="popup.js"></script>
 </body>
 </html>

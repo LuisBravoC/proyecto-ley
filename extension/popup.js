@@ -158,3 +158,26 @@ $('btnClone').onclick = async () => {
     status('Clonado: ' + res.result.count + ' producto(s). Total backend: $' + res.result.total + '. Recarga el carrito.', 'ok');
   } catch (e) { status(friendly(e), 'err'); }
 };
+
+$('btnHist').onclick = async () => {
+  await chrome.tabs.create({ url: PAGES_URL + '#/historial' });
+};
+
+// Al abrir: muestra resumen del carrito actual y versión (como el badge de la página).
+(async () => {
+  $('ver').textContent = 'v' + chrome.runtime.getManifest().version;
+  try {
+    const r = await readCurrentCart();
+    lastCode = r.code;
+    lastShare = r.share;
+    const total = r.share.p.reduce((t, p) => t + Number(p[8] || 0), 0);
+    $('summary').innerHTML =
+      '<b>' + r.count + (r.count === 1 ? ' producto' : ' productos') + '</b>' +
+      (r.store ? ' · ' + r.store : '') +
+      ' · ~$' + total.toFixed(2);
+    status('Listo.', '');
+  } catch (e) {
+    $('summary').textContent = 'Abre tu carrito en tusuper para ver el resumen.';
+    status(friendly(e), 'err');
+  }
+})();
