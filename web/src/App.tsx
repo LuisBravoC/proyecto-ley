@@ -264,8 +264,28 @@ export default function App() {
         if (s) {
           setShare(s);
           dismiss();
+          // autosave=1 (botón inyectado en Casa Ley): guarda online y cae al ?c= corto.
+          const wantAuto = window.location.hash.includes('autosave=1');
           const found = codeFromLocation();
-          if (found && found.kind === 'link') setHistory(recordHistory(s, 'link', found.code));
+          if (found && found.kind === 'link' && !wantAuto) {
+            setHistory(recordHistory(s, 'link', found.code));
+          }
+          if (wantAuto) {
+            if (!backendReady) {
+              notify('Para el link corto se necesita backend (aún no configurado).', true);
+            } else {
+              notify('Guardando online…');
+              try {
+                const code = await saveListOnline(s);
+                setHistory(recordHistory(s, 'online', code));
+                window.location.replace(
+                  window.location.origin + window.location.pathname + '?c=' + code,
+                );
+              } catch (e) {
+                notify('No pude guardar online: ' + (e as Error).message, true);
+              }
+            }
+          }
         }
       } catch (e) {
         setShare(null);
