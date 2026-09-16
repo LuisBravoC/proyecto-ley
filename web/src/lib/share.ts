@@ -87,6 +87,14 @@ export function hasOffer(r: ShareItem): boolean {
   return r[3] != null && !isNaN(s) && s > 0 && s !== n;
 }
 
+// Porcentaje de descuento, o null si no hay oferta.
+export function discountPct(r: ShareItem): number | null {
+  const s = Number(r[3]);
+  const n = Number(r[4]);
+  if (!(r[3] != null && !isNaN(s) && s > 0) || isNaN(n) || n <= 0 || s >= n) return null;
+  return Math.round((1 - s / n) * 100);
+}
+
 export function qtyText(r: ShareItem): string {
   const qty = r[1];
   const unit = r[5] || 'PZ';

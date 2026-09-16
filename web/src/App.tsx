@@ -3,6 +3,7 @@ import {
   b64urlDecode,
   canCloneHere,
   cloneShareHere,
+  discountPct,
   hasOffer,
   imgUrl,
   money,
@@ -46,16 +47,26 @@ function ProductCard({ r, grid }: { r: ShareItem; grid: boolean }) {
   const [hideImg, setHideImg] = useState(false);
   const src = imgUrl(r[6]);
   const offer = hasOffer(r);
+  const pct = discountPct(r);
   return (
     <article className={`card${grid ? ' grid-card' : ''}`}>
       {src && !hideImg && <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />}
       <div className="card-body">
-        <b>{r[2]}</b>
+        <b className="pname">{r[2]}</b>
         <span className="muted">{qtyText(r)}</span>
         <div className="price-row">
           <b>{money(r[8])}</b>
+          {offer && grid && pct != null && <span className="pill">−{pct}%</span>}
           {offer ? (
-            <span className="pill">Oferta {money(r[3])} c/u · antes {money(r[4])}</span>
+            grid ? (
+              <span className="muted small">
+                {money(r[3])} c/u · antes {money(r[4])}
+              </span>
+            ) : (
+              <span className="offer">
+                Oferta {money(r[3])} c/u (antes {money(r[4])})
+              </span>
+            )
           ) : (
             <span className="muted">{money(unitPrice(r))} c/u</span>
           )}
