@@ -1,0 +1,5 @@
+web/node_modules/
+web/dist/
+# Notas internas: solo locales, no van al repo
+investigacion.md
+plan-backend.md
