@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { FiGrid, FiLink, FiList, FiMessageCircle, FiShare2 } from 'react-icons/fi';
 import {
   b64urlDecode,
-  b64urlEncode,
   canCloneHere,
   cloneShareHere,
   discountPct,
@@ -281,56 +280,36 @@ export default function App() {
     }
   };
 
-  // Un solo "Copiar link": decide solo.
-  // - Si ya estamos en un ?c= corto, lo reutiliza.
-  // - Lista chica (URL < 1800): link con datos incluidos, sin backend.
-  // - Lista grande + backend: guarda online y da link corto.
-  // - Lista grande sin backend: copia el largo igual y avisa.
-  const copyLink = async (): Promise<boolean> => {
-    if (!share) return false;
+  // Compartir siempre es link corto online. El código largo (#c=) queda solo
+  // para pruebas y para pegarlo en "Abrir código".
+  const ensureShortUrl = async (): Promise<string | null> => {
+    if (!share) return null;
     const qc = new URLSearchParams(window.location.search).get('c');
-    if (qc && isShortCode(qc)) {
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        notify('Link copiado.');
-        return true;
-      } catch {
-        notify('No pude copiar al portapapeles.', true);
-        return false;
-      }
-    }
-    const hashLink =
-      window.location.origin + window.location.pathname + '#c=' + b64urlEncode(share);
-    if (hashLink.length <= 1800) {
-      try {
-        await navigator.clipboard.writeText(hashLink);
-        notify('Link copiado.');
-        return true;
-      } catch {
-        notify('No pude copiar al portapapeles.', true);
-        return false;
-      }
-    }
+    if (qc && isShortCode(qc)) return window.location.href;
     if (!backendReady) {
-      try {
-        await navigator.clipboard.writeText(hashLink);
-        notify('Link copiado (es largo: con backend saldría corto).');
-        return true;
-      } catch {
-        notify('No pude copiar al portapapeles.', true);
-        return false;
-      }
+      notify('Para compartir se necesita backend (aún no configurado).', true);
+      return null;
     }
-    notify('Lista grande: guardando online…');
+    notify('Guardando online…');
     try {
       const code = await saveListOnline(share);
       setHistory(recordHistory(share, 'online', code));
-      const url = window.location.origin + window.location.pathname + '?c=' + code;
-      await navigator.clipboard.writeText(url);
-      notify('Link corto copiado: ' + code);
-      return true;
+      return window.location.origin + window.location.pathname + '?c=' + code;
     } catch (e) {
       notify('No pude guardar online: ' + (e as Error).message, true);
+      return null;
+    }
+  };
+
+  const copyLink = async (): Promise<boolean> => {
+    const url = await ensureShortUrl();
+    if (!url) return false;
+    try {
+      await navigator.clipboard.writeText(url);
+      notify('Link corto copiado.');
+      return true;
+    } catch {
+      notify('Tu link corto:\n' + url, true);
       return false;
     }
   };
@@ -340,7 +319,8 @@ export default function App() {
     !!(navigator as Navigator & { share?: unknown }).share;
 
   const nativeShare = async (): Promise<boolean> => {
-    if (!share) return false;
+    const url = await ensureShortUrl();
+    if (!url || !share) return false;
     try {
       await (
         navigator as Navigator & {
@@ -349,7 +329,7 @@ export default function App() {
       ).share({
         title: 'Mi lista Casa Ley',
         text: shareToWhatsApp(share),
-        url: window.location.href,
+        url,
       });
       return true;
     } catch {
