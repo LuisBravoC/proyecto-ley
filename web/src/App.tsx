@@ -548,9 +548,9 @@ export default function App() {
             <button onClick={goHistorial} className={route === 'historial' ? 'active' : ''} aria-current={route === 'historial' ? 'page' : undefined}>Historial</button>
             <button onClick={goInstalar} className={route === 'instalar' ? 'active' : ''} aria-current={route === 'instalar' ? 'page' : undefined}>Instalar extensión</button>
             <button onClick={goAyuda} className={route === 'ayuda' ? 'active' : ''} aria-current={route === 'ayuda' ? 'page' : undefined}>Cómo funciona</button>
-            <div className="sidebar-foot muted">
-              compilación {BUILD_LABEL} · hover {HOVER_CAPABLE ? 'sí' : 'no'}
-            </div>
+           {/*<div className="sidebar-foot muted">
+              compilación {BUILD_LABEL}
+            </div>*/}
           </nav>
         </aside>
         <div className="content">
