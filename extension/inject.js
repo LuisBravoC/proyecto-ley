@@ -58,20 +58,24 @@
   }
 
   // Con lista personal: empuja el carrito a tu código fijo y abre tu link.
-  // Sin lista personal: abre la página para crear un snapshot nuevo.
+  // Sin lista personal: la crea sola con este carrito (y activa el auto).
   async function openPersonalOrSnapshot(setLabel, done) {
+    var built = buildShareObject();
+    if (!built) { setLabel('Vacío'); done(); return; }
     var personal = null;
     try {
       personal = (await chrome.storage.local.get('leypersonal')).leypersonal || null;
     } catch (e) { /* sigue sin personal */ }
     if (!personal || !personal.code || !personal.key) {
-      var code = buildCode();
-      if (!code) { setLabel('Vacío'); done(); return; }
-      window.open(PAGES_URL + '#c=' + code + '&autosave=1', '_blank');
-      return;
+      setLabel('Creando tu lista…');
+      try {
+        personal = await createPersonal(built);
+      } catch (e) {
+        setLabel('Error al crear');
+        done();
+        return;
+      }
     }
-    var built = buildShareObject();
-    if (!built) { setLabel('Vacío'); done(); return; }
     setLabel('Sincronizando…');
     try {
       var res = await fetch(FN_URL, {
@@ -102,6 +106,51 @@
       setLabel('Sin conexión');
       done();
     }
+  }
+
+  var CODE_ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  var KEY_ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  function genCode(n) {
+    var a = new Uint8Array(n || 6), s = '', i;
+    crypto.getRandomValues(a);
+    for (i = 0; i < a.length; i++) s += CODE_ABC[a[i] % CODE_ABC.length];
+    return s;
+  }
+  function genEditKey(n) {
+    var a = new Uint8Array(n || 24), s = '', i;
+    crypto.getRandomValues(a);
+    for (i = 0; i < a.length; i++) s += KEY_ABC[a[i] % KEY_ABC.length];
+    return s;
+  }
+  async function sha256Hex(s) {
+    var d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+    var arr = new Uint8Array(d), out = '', i;
+    for (i = 0; i < arr.length; i++) out += arr[i].toString(16).padStart(2, '0');
+    return out;
+  }
+  async function createPersonal(built) {
+    var code = genCode(6), key = genEditKey(24);
+    var total = 0, i;
+    for (i = 0; i < built.share.p.length; i++) total += Number(built.share.p[i][8] || 0);
+    total = Math.round(total * 100) / 100;
+    var res = await fetch(FN_URL.replace('/functions/v1/update-list', '/rest/v1/lists'), {
+      method: 'POST',
+      headers: {
+        'apikey': FN_ANON,
+        'Authorization': 'Bearer ' + FN_ANON,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        code: code, branch: built.share.b || null, store_name: built.share.n || null,
+        creator_name: built.share.by || null, label: null, edit_key: await sha256Hex(key),
+        share: built.share, item_count: built.share.p.length, est_total: total,
+      }),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    var personal = { code: code, key: key, on: true, lastSig: built.code };
+    try { await chrome.storage.local.set({ leypersonal: personal }); } catch (e) { /* sigue */ }
+    return personal;
   }
 
   // Encuentra el header del drawer ("Tu carrito") y el botón Vaciar.
