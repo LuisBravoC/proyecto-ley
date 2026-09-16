@@ -185,12 +185,23 @@ section { scroll-margin-top: 72px; }
 .row-total {
   margin-left: auto;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
   flex-shrink: 0;
 }
-.row-total s { text-decoration: line-through; }
+.price-col { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.35; }
+.price-col b { font-size: 1.05em; }
+.price-col s { text-decoration: line-through; }
+.discount-box {
+  background: var(--verde);
+  color: #06130a;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 10px 8px;
+  border-radius: 6px;
+}
+[data-theme='light'] .discount-box { color: #fff; }
 /* Segmentado lista/cuadrícula, compacto */
 .view-toggle {
   display: inline-flex;

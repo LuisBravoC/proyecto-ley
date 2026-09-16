@@ -92,9 +92,11 @@ function ProductCard({ r, grid }: { r: ShareItem; grid: boolean }) {
         <span className="muted small">{qtyText(r)}</span>
       </div>
       <div className="row-total">
-        <b>{money(r[8])}</b>
-        {offer && <s className="muted small">{money(lineTotalNormal(r))}</s>}
-        {offer && pct != null && <span className="pill">−{pct}%</span>}
+        {offer && pct != null && <span className="discount-box">−{pct}%</span>}
+        <div className="price-col">
+          {offer && <s className="muted small">{money(lineTotalNormal(r))}</s>}
+          <b>{money(r[8])}</b>
+        </div>
       </div>
     </article>
   );
