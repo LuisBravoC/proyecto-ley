@@ -387,7 +387,6 @@ export default function App() {
       <nav className={`drawer${menuOpen ? ' open' : ''}`} aria-hidden={!menuOpen}>
         <button onClick={goHome}>Inicio</button>
         <button onClick={goHistorial}>Historial</button>
-        <button onClick={openModal}>Abrir código</button>
         <button onClick={goAyuda}>Cómo funciona</button>
       </nav>
 
