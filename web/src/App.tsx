@@ -545,7 +545,7 @@ export default function App() {
           <nav className="sidebar-inner" aria-label="Menú principal">
             <button onClick={goHome} className={route === 'home' ? 'active' : ''} aria-current={route === 'home' ? 'page' : undefined}>Inicio</button>
             <button onClick={goHistorial} className={route === 'historial' ? 'active' : ''} aria-current={route === 'historial' ? 'page' : undefined}>Historial</button>
-            <button onClick={goInstalar} className={route === 'instalar' ? 'active' : ''} aria-current={route === 'instalar' ? 'page' : undefined}>Instalar extensión</button>
+            <button onClick={goInstalar} className={route === 'instalar' ? 'active' : ''} aria-current={route === 'instalar' ? 'page' : undefined}>Extensión</button>
             <button onClick={goAyuda} className={route === 'ayuda' ? 'active' : ''} aria-current={route === 'ayuda' ? 'page' : undefined}>Cómo funciona</button>
           </nav>
         </aside>
@@ -646,15 +646,15 @@ export default function App() {
             <h3>Opción 2 · Extensión completa</h3>
             <ol className="steps">
               <li>
-                Descarga el proyecto (
+                Descarga solo la extensión (
                 <a
-                  href="https://github.com/luisbravoc/proyecto-ley/archive/refs/heads/main.zip"
+                  href="https://github.com/luisbravoc/proyecto-ley/raw/refs/heads/main/extension.zip"
                   target="_blank"
                   rel="noreferrer"
                 >
-                  .zip
+                  extension.zip
                 </a>
-                ) y descomprímelo.
+                ) y descomprímela.
               </li>
               <li>Abre <b>chrome://extensions</b> y activa el modo desarrollador.</li>
               <li>Pulsa “Cargar descomprimida” y elige la carpeta <b>extension/</b>.</li>
