@@ -42,12 +42,12 @@ function MoonIcon() {
   );
 }
 
-function ProductCard({ r }: { r: ShareItem }) {
+function ProductCard({ r, grid }: { r: ShareItem; grid: boolean }) {
   const [hideImg, setHideImg] = useState(false);
   const src = imgUrl(r[6]);
   const offer = hasOffer(r);
   return (
-    <article className="card">
+    <article className={`card${grid ? ' grid-card' : ''}`}>
       {src && !hideImg && <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />}
       <div className="card-body">
         <b>{r[2]}</b>
@@ -80,6 +80,21 @@ export default function App() {
       return 'dark';
     }
   });
+  const [view, setView] = useState<'lista' | 'grid'>(() => {
+    try {
+      return (localStorage.getItem('ley-view') as 'lista' | 'grid') || 'lista';
+    } catch {
+      return 'lista';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ley-view', view);
+    } catch {
+      /* sin almacenamiento */
+    }
+  }, [view]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -357,9 +372,27 @@ export default function App() {
                   tienda.
                 </p>
                 {msg && <div id="msg">{msg}</div>}
-                {share.p.map((r) => (
-                  <ProductCard key={r[0]} r={r} />
-                ))}
+                <div className="row view-toggle" role="group" aria-label="Vista de lista">
+                  <button
+                    className={view === 'lista' ? 'primary' : ''}
+                    aria-pressed={view === 'lista'}
+                    onClick={() => setView('lista')}
+                  >
+                    Lista
+                  </button>
+                  <button
+                    className={view === 'grid' ? 'primary' : ''}
+                    aria-pressed={view === 'grid'}
+                    onClick={() => setView('grid')}
+                  >
+                    Cuadrícula
+                  </button>
+                </div>
+                <div className={view === 'grid' ? 'grid' : ''}>
+                  {share.p.map((r) => (
+                    <ProductCard key={r[0]} r={r} grid={view === 'grid'} />
+                  ))}
+                </div>
                 <div className="total-card">
                   <span>Total aproximado</span>
                   <b>{money(shareTotal(share))}</b>
