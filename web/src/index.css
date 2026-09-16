@@ -312,7 +312,57 @@ textarea {
   border: 1px solid var(--linea);
   padding: 10px;
 }
-#msg { background: var(--caja); padding: 10px 12px; border-radius: 12px; white-space: pre-wrap; margin-top: 10px; }
+/* Toast temporal */
+.toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(84px + env(safe-area-inset-bottom));
+  z-index: 40;
+  max-width: min(480px, calc(100vw - 32px));
+  background: var(--tinta);
+  color: var(--fondo);
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 14px;
+  text-align: center;
+  box-shadow: var(--sombra);
+}
+.toast.err { background: #b3261e; color: #fff; }
+
+/* Hoja de compartir estilo app */
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--linea);
+  margin: 0 auto 8px;
+}
+.sheet-opt {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  font-size: 16px;
+  padding: 13px 14px;
+  margin: 6px 0;
+}
+.sheet-opt svg { flex-shrink: 0; }
+@media (max-width: 600px) {
+  .modal.sheet {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: none;
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+  }
+}
 .banner {
   background: var(--aviso-fondo);
   border: 1px solid var(--aviso-linea);

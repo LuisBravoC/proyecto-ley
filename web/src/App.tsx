@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { FiGrid, FiList } from 'react-icons/fi';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { FiGrid, FiLink, FiList, FiMessageCircle, FiShare2, FiZap } from 'react-icons/fi';
 import {
   b64urlDecode,
   canCloneHere,
@@ -104,10 +104,21 @@ function ProductCard({ r, grid }: { r: ShareItem; grid: boolean }) {
 
 export default function App() {
   const [share, setShare] = useState<ShareV1 | null>(null);
-  const [msg, setMsg] = useState('');
+  const [toast, setToast] = useState<{ id: number; text: string; err?: boolean } | null>(null);
+  const toastTimer = useRef<number | null>(null);
+  const notify = useCallback((text: string, err = false) => {
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    setToast({ id: Date.now(), text, err });
+    toastTimer.current = window.setTimeout(() => setToast(null), err ? 4000 : 2600);
+  }, []);
+  const dismiss = useCallback(() => {
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    setToast(null);
+  }, []);
   const [input, setInput] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [updateAvail, setUpdateAvail] = useState(false);
   const [route, setRoute] = useState<Route>(() => getRoute());
   const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
@@ -148,20 +159,20 @@ export default function App() {
     const found = extractCode(code);
     if (found && found.kind === 'online') {
       if (!backendReady) {
-        setMsg('Ese código corto necesita backend (aún no configurado en esta página).');
+        notify('Ese código corto necesita backend (aún no configurado en esta página).');
         return;
       }
-      setMsg('Cargando lista…');
+      notify('Cargando lista…');
       try {
         const s = await loadListOnline(found.code);
         setShare(s);
-        setMsg('');
+        dismiss();
         setModalOpen(false);
         setInput('');
         setHistory(recordHistory(s, 'online', found.code));
         if (getRoute() !== 'home') window.location.hash = '#/';
       } catch (e) {
-        setMsg('No encontré ese código (' + (e as Error).message + ').');
+        notify('No encontré ese código (' + (e as Error).message + ').');
       }
       return;
     }
@@ -169,14 +180,14 @@ export default function App() {
       const s = b64urlDecode(code);
       if (!s || s.v !== 1 || !Array.isArray(s.p)) throw new Error('Código inválido.');
       setShare(s);
-      setMsg('');
+      dismiss();
       setModalOpen(false);
       setInput('');
       const raw = extractCode(code);
       if (raw && raw.kind === 'link') setHistory(recordHistory(s, 'link', raw.code));
       if (getRoute() !== 'home') window.location.hash = '#/';
     } catch (e) {
-      setMsg('No pude leer el código (' + (e as Error).message + ').');
+      notify('No pude leer el código (' + (e as Error).message + ').');
     }
   }, []);
 
@@ -189,18 +200,18 @@ export default function App() {
       if (qc && isShortCode(qc)) {
         if (!backendReady) {
           setShare(null);
-          setMsg('Este link corto necesita backend (aún no configurado en esta página).');
+          notify('Este link corto necesita backend (aún no configurado en esta página).');
           return;
         }
-        setMsg('Cargando lista…');
+        notify('Cargando lista…');
         try {
           const s = await loadListOnline(qc);
           setShare(s);
-          setMsg('');
+          dismiss();
           setHistory(recordHistory(s, 'online', qc.trim().toUpperCase()));
         } catch (e) {
           setShare(null);
-          setMsg('No encontré ese código (' + (e as Error).message + ').');
+          notify('No encontré ese código (' + (e as Error).message + ').');
         }
         return;
       }
@@ -208,13 +219,13 @@ export default function App() {
         const { share: s } = parseShareFromLocation();
         if (s) {
           setShare(s);
-          setMsg('');
+          dismiss();
           const found = codeFromLocation();
           if (found && found.kind === 'link') setHistory(recordHistory(s, 'link', found.code));
         }
       } catch (e) {
         setShare(null);
-        setMsg('El link trae un código que no pude leer (' + (e as Error).message + '). Usa Abrir código.');
+        notify('El link trae un código que no pude leer (' + (e as Error).message + '). Usa Abrir código.');
       }
     };
     boot();
@@ -249,66 +260,100 @@ export default function App() {
       if (e.key === 'Escape') {
         setMenuOpen(false);
         setModalOpen(false);
+        setShareOpen(false);
       }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [menuOpen, modalOpen]);
+  }, [menuOpen, modalOpen, shareOpen]);
 
-  const copyText = async () => {
-    if (!share) return;
+  const copyText = async (): Promise<boolean> => {
+    if (!share) return false;
     const txt = shareToWhatsApp(share);
     try {
       await navigator.clipboard.writeText(txt);
-      setMsg('Copiado para WhatsApp.');
+      notify('Copiado para WhatsApp.');
+      return true;
     } catch {
-      setMsg('No pude autocopiar. Texto:\n' + txt);
+      notify('No pude copiar al portapapeles.', true);
+      return false;
     }
   };
 
-  const copyLink = async () => {
+  const copyLink = async (): Promise<boolean> => {
     const url = window.location.href;
     try {
       await navigator.clipboard.writeText(url);
-      setMsg('Link copiado.');
+      notify('Link copiado.');
+      return true;
     } catch {
-      setMsg('No pude autocopiar. Copia la URL del navegador.');
+      notify('No pude copiar al portapapeles.', true);
+      return false;
     }
   };
 
-  const saveOnline = async () => {
-    if (!share) return;
-    setMsg('Guardando online…');
+  const saveOnline = async (): Promise<boolean> => {
+    if (!share) return false;
+    notify('Guardando online…');
     try {
       const code = await saveListOnline(share);
       setHistory(recordHistory(share, 'online', code));
       const url = window.location.origin + window.location.pathname + '?c=' + code;
       try {
         await navigator.clipboard.writeText(url);
-        setMsg('Link corto copiado:\n' + url);
+        notify('Link corto copiado: ' + code);
       } catch {
-        setMsg('Tu link corto:\n' + url);
+        notify('Tu link corto: ' + code, true);
+        return false;
       }
+      return true;
     } catch (e) {
-      setMsg('No pude guardar online: ' + (e as Error).message);
+      notify('No pude guardar online: ' + (e as Error).message, true);
+      return false;
     }
+  };
+
+  const canNativeShare =
+    typeof navigator !== 'undefined' &&
+    !!(navigator as Navigator & { share?: unknown }).share;
+
+  const nativeShare = async (): Promise<boolean> => {
+    if (!share) return false;
+    try {
+      await (
+        navigator as Navigator & {
+          share: (d: { title?: string; text?: string; url?: string }) => Promise<void>;
+        }
+      ).share({
+        title: 'Mi lista Casa Ley',
+        text: shareToWhatsApp(share),
+        url: window.location.href,
+      });
+      return true;
+    } catch {
+      return false; // cancelado por el usuario
+    }
+  };
+
+  const runShare = async (fn: () => Promise<boolean>) => {
+    if (await fn()) setShareOpen(false);
   };
 
   const clone = async () => {
     if (!share) {
-      setMsg('Primero carga una lista.');
+      notify('Primero carga una lista.');
       return;
     }
     if (!canCloneHere()) {
-      setMsg('Para clonar usa la extensión (botón Clonar) estando en tusuper.casaley.com.mx. Esta página solo muestra.');
+      notify('Para clonar usa la extensión (botón Clonar) estando en tusuper.casaley.com.mx. Esta página solo muestra.');
       return;
     }
-    setMsg('Clonando con tu sesión local…');
+    notify('Clonando con tu sesión local…');
     try {
       const r = await cloneShareHere(share);
-      setMsg(`Listo. Total backend: $${r.total}. Recarga el carrito.`);
+      notify(`Listo. Total backend: $${r.total}. Recarga el carrito.`);
     } catch (e) {
-      setMsg('Error al clonar: ' + (e as Error).message);
+      notify('Error al clonar: ' + (e as Error).message);
     }
   };
 
@@ -377,12 +422,13 @@ export default function App() {
         </div>
       </header>
 
-      {(menuOpen || modalOpen) && (
+      {(menuOpen || modalOpen || shareOpen) && (
         <div
           className="overlay"
           onClick={() => {
             setMenuOpen(false);
             setModalOpen(false);
+            setShareOpen(false);
           }}
         />
       )}
@@ -478,7 +524,7 @@ export default function App() {
                 <button className="primary big" onClick={openModal}>
                   Abrir código
                 </button>
-                {msg && <div id="msg">{msg}</div>}
+                {null}
               </div>
             ) : (
               <>
@@ -488,7 +534,7 @@ export default function App() {
                   {storeName(share) ? ` · ${storeName(share)}` : ''} · Precios de referencia, pueden variar en
                   tienda.
                 </p>
-                {msg && <div id="msg">{msg}</div>}
+                {null}
                 <div className="view-toggle" role="group" aria-label="Vista de lista">
                   <button
                     className={view === 'lista' ? 'primary' : ''}
@@ -514,7 +560,6 @@ export default function App() {
                   <span className="muted">Subtotal</span>
                   <b>{money(shareTotal(share))}</b>
                 </div>
-                <p className="muted">El total final se confirma antes de pagar.</p>
                 <p className="muted build-tag">compilación {BUILD_LABEL}</p>
               </>
             )}
@@ -522,16 +567,45 @@ export default function App() {
         )}
       </main>
 
-      {route === 'home' && share && (
-        <div className="sharebar" role="toolbar" aria-label="Compartir lista">
-          <button onClick={copyLink}>Copiar link</button>
-          <button onClick={copyText}>Texto</button>
-          {backendReady && <button onClick={saveOnline}>Link corto</button>}
-          {canCloneHere() && (
-            <button className="primary" onClick={clone}>
-              Clonar
+      {shareOpen && share && (
+        <div className="modal sheet" role="dialog" aria-modal="true" aria-label="Compartir lista">
+          <div className="sheet-handle" aria-hidden="true" />
+          <h2>Compartir lista</h2>
+          <p className="muted">
+            {share.p.length} {share.p.length === 1 ? 'producto' : 'productos'} · {money(shareTotal(share))}
+          </p>
+          <button className="sheet-opt" onClick={() => runShare(copyLink)}>
+            <FiLink aria-hidden="true" /> Copiar link
+          </button>
+          <button className="sheet-opt" onClick={() => runShare(copyText)}>
+            <FiMessageCircle aria-hidden="true" /> Copiar como texto
+          </button>
+          {backendReady && (
+            <button className="sheet-opt" onClick={() => runShare(saveOnline)}>
+              <FiZap aria-hidden="true" /> Link corto online
             </button>
           )}
+          {canNativeShare && (
+            <button className="sheet-opt" onClick={() => runShare(nativeShare)}>
+              <FiShare2 aria-hidden="true" /> Compartir con…
+            </button>
+          )}
+          <button onClick={() => setShareOpen(false)}>Cerrar</button>
+        </div>
+      )}
+
+      {toast && (
+        <div className={`toast${toast.err ? ' err' : ''}`} role="status">
+          {toast.text}
+        </div>
+      )}
+
+      {route === 'home' && share && (
+        <div className="sharebar" role="toolbar" aria-label="Compartir lista">
+          <button className="primary" onClick={() => setShareOpen(true)}>
+            <FiShare2 aria-hidden="true" /> Compartir
+          </button>
+          {canCloneHere() && <button onClick={clone}>Clonar</button>}
         </div>
       )}
     </>
