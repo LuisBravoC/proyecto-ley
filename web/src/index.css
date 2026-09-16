@@ -364,6 +364,20 @@ section { scroll-margin-top: 72px; }
   margin: 2px 0 8px;
 }
 .sheet label.muted { display: block; margin-top: 8px; }
+.keybox {
+  border: 1px dashed var(--verde);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 10px 0;
+}
+.keybox code {
+  font-size: 13px;
+  word-break: break-all;
+  background: var(--caja);
+  border-radius: 8px;
+  padding: 8px 10px;
+  flex: 1;
+}
 
 /* Barra compartir */
 .sharebar {

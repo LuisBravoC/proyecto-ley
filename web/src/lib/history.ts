@@ -11,6 +11,7 @@ export interface HistoryEntry {
   count: number;
   total: number;
   when: number;
+  editKey?: string; // solo en este navegador: permite actualizar el código
 }
 
 const KEY = 'ley-history';
@@ -40,6 +41,7 @@ export function recordHistory(
   kind: HistoryEntry['kind'],
   code: string,
   title?: string,
+  editKey?: string,
 ): HistoryEntry[] {
   const entry: HistoryEntry = {
     kind,
@@ -52,6 +54,7 @@ export function recordHistory(
     count: share.p.length,
     total: shareTotal(share),
     when: Date.now(),
+    ...(editKey ? { editKey } : {}),
   };
   const list = [entry, ...loadHistory().filter((e) => e.code !== code)].slice(0, MAX);
   persist(list);

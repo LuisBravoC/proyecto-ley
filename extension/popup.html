@@ -37,7 +37,7 @@
   }
   button.primary { background: #35b558; border-color: #35b558; color: #06130a; font-weight: 700; }
   button:disabled { opacity: 0.5; cursor: wait; }
-  textarea {
+  textarea, input {
     width: 100%;
     box-sizing: border-box;
     min-height: 52px;
@@ -84,6 +84,9 @@
 <button id="btnCopy">Copiar link para compartir</button>
 <textarea id="importInput" placeholder="Pegar link #c=... para clonar aquí"></textarea>
 <button id="btnClone">Clonar lista en este carrito</button>
+<input id="updCode" placeholder="Link ?c= de tu foto (para actualizar)" />
+<input id="updKey" type="password" placeholder="Clave de edición" autocomplete="off" />
+<button id="btnUpdate">Actualizar foto con este carrito</button>
 <div id="status">Listo.</div>
 <div class="foot">
   <span id="ver">v…</span>

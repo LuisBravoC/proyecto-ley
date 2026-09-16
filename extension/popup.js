@@ -8,6 +8,9 @@
 const MODE = 'pages';
 const PAGES_URL = 'https://luisbravoc.github.io/proyecto-ley/'; // app React en vivo
 const API = 'https://serviciosapp.casaley.com.mx/rails/api/bulk_add_to_cart_web';
+// Backend propio (publishable: pública por diseño, va en el bundle de la página).
+const SUPABASE_URL = 'https://pdkrtsrfaygeungcolde.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_3jDw8StQcSVaPxGIimaX5Q_-vSLzt5n';
 // Nota: el guardado online vive en la página (botón Guardar online), no aquí.
 // La extensión solo lee el carrito y lo abre/copia; así no hay keys que configurar.
 
@@ -161,6 +164,63 @@ $('btnClone').onclick = async () => {
 
 $('btnHist').onclick = async () => {
   await chrome.tabs.create({ url: PAGES_URL + '#/historial' });
+};
+
+function parseShortCode(input) {
+  const t = String(input || '').trim();
+  const m = t.match(/[\?&]c=([A-Za-z0-9]{4,10})/);
+  if (m) return m[1].toUpperCase();
+  if (/^[A-Za-z0-9]{4,10}$/.test(t)) return t.toUpperCase();
+  return null;
+}
+
+async function leyKeyGet(code) {
+  const o = await chrome.storage.local.get('leykeys');
+  return ((o && o.leykeys) || {})[code] || '';
+}
+
+async function leyKeySet(code, key) {
+  const o = await chrome.storage.local.get('leykeys');
+  const m = (o && o.leykeys) || {};
+  m[code] = key;
+  await chrome.storage.local.set({ leykeys: m });
+}
+
+$('updCode').addEventListener('input', async () => {
+  const code = parseShortCode($('updCode').value);
+  if (!code) return;
+  const key = await leyKeyGet(code);
+  if (key && !$('updKey').value) $('updKey').value = key;
+});
+
+$('btnUpdate').onclick = async () => {
+  const code = parseShortCode($('updCode').value || $('importInput').value);
+  if (!code) { status('Pega el link ?c= de tu foto primero.', 'err'); return; }
+  const key = $('updKey').value.trim() || await leyKeyGet(code);
+  if (!key) { status('Pega tu clave de edición (se mostró una vez al guardar).', 'err'); return; }
+  status('Leyendo carrito…');
+  try {
+    const r = await readCurrentCart();
+    lastCode = r.code;
+    lastShare = r.share;
+    status('Actualizando ' + code + '…');
+    const res = await fetch(SUPABASE_URL + '/functions/v1/update-list', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON,
+        'Authorization': 'Bearer ' + SUPABASE_ANON,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ code: code, edit_key: key, share: r.share }),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      throw new Error((j && j.error) || ('HTTP ' + res.status));
+    }
+    await leyKeySet(code, key);
+    $('updKey').value = key;
+    status('Foto ' + code + ' actualizada con ' + r.count + ' producto(s). Quien la tenga abierta la ve al instante.', 'ok');
+  } catch (e) { status(friendly(e), 'err'); }
 };
 
 // Al abrir: muestra resumen del carrito actual y versión (como el badge de la página).

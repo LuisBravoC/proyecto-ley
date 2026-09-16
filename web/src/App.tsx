@@ -26,6 +26,7 @@ import {
   isShortCode,
   loadListOnline,
   saveListOnline,
+  subscribeList,
   type SnapshotMeta,
 } from './lib/backend';
 import { checkForUpdate, BUILD_LABEL, HOVER_CAPABLE } from './lib/version';
@@ -178,6 +179,8 @@ export default function App() {
   const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
   const [snapshot, setSnapshot] = useState<SnapshotMeta | null>(null);
   const [shareLabel, setShareLabel] = useState('');
+  const [savedKey, setSavedKey] = useState<{ code: string; editKey: string } | null>(null);
+  const unsubRef = useRef<(() => void) | null>(null);
   const [theme, setTheme] = useState<Theme>(() => {
     try {
       return (localStorage.getItem('ley-theme') as Theme) || 'dark';
@@ -220,13 +223,20 @@ export default function App() {
       }
       notify('Cargando lista…');
       try {
+        const upper = found.code.trim().toUpperCase();
         const { share: s, meta } = await loadListOnline(found.code);
         setShare(s);
         setSnapshot(meta);
         dismiss();
         setModalOpen(false);
         setInput('');
-        setHistory(recordHistory(s, 'online', found.code));
+        const mine = loadHistory().find((e) => e.code === upper);
+        setHistory(recordHistory(s, 'online', upper, meta.label || undefined, mine?.editKey));
+        if (unsubRef.current) unsubRef.current();
+        unsubRef.current = subscribeList(upper, (ns) => {
+          setShare(ns);
+          notify('Lista actualizada.');
+        });
         if (getRoute() !== 'home') window.location.hash = '#/';
       } catch (e) {
         setShare(null);
@@ -265,11 +275,20 @@ export default function App() {
         }
         notify('Cargando lista…');
         try {
+          const upper = qc.trim().toUpperCase();
           const { share: s, meta } = await loadListOnline(qc);
           setShare(s);
           setSnapshot(meta);
           dismiss();
-          setHistory(recordHistory(s, 'online', qc.trim().toUpperCase()));
+          // Conserva la llave si esta lista es tuya (está en tu historial).
+          const mine = loadHistory().find((e) => e.code === upper);
+          setHistory(recordHistory(s, 'online', upper, meta.label || undefined, mine?.editKey));
+          // Tiempo real: si el dueño la actualiza, se refresca sola.
+          if (unsubRef.current) unsubRef.current();
+          unsubRef.current = subscribeList(upper, (ns) => {
+            setShare(ns);
+            notify('Lista actualizada.');
+          });
         } catch (e) {
           setShare(null);
           setSnapshot(null);
@@ -295,8 +314,9 @@ export default function App() {
             } else {
               notify('Guardando online…');
               try {
-                const code = await saveListOnline(s);
-                setHistory(recordHistory(s, 'online', code));
+                const { code, editKey } = await saveListOnline(s);
+                setHistory(recordHistory(s, 'online', code, undefined, editKey));
+                setSavedKey({ code, editKey });
                 window.location.replace(
                   window.location.origin + window.location.pathname + '?c=' + code,
                 );
@@ -313,7 +333,10 @@ export default function App() {
     };
     boot();
     window.addEventListener('hashchange', boot);
-    return () => window.removeEventListener('hashchange', boot);
+    return () => {
+      window.removeEventListener('hashchange', boot);
+      if (unsubRef.current) unsubRef.current();
+    };
   }, []);
 
   // Aviso de versión nueva: revisa cada 60s (solo con pestaña visible).
@@ -376,8 +399,9 @@ export default function App() {
     notify('Guardando online…');
     try {
       const label = shareLabel.trim() || defaultLabel();
-      const code = await saveListOnline(share, label);
-      setHistory(recordHistory(share, 'online', code, label));
+      const { code, editKey } = await saveListOnline(share, label);
+      setHistory(recordHistory(share, 'online', code, label, editKey));
+      setSavedKey({ code, editKey });
       setSnapshot({ label, savedAt: new Date().toISOString() });
       return window.location.origin + window.location.pathname + '?c=' + code;
     } catch (e) {
@@ -607,12 +631,27 @@ export default function App() {
                       <b className="pname">{e.title}</b>
                       <span className="muted small">
                         {e.kind === 'online' ? `Código ${e.code}` : 'Link local'} · {fmtFecha(e.when)}
+                        {e.editKey ? ' · editable' : ''}
                       </span>
                     </div>
                     <div className="row-total">
                       <b>{money(e.total)}</b>
                       <div className="row">
                         <button onClick={() => openHistory(e)}>Abrir</button>
+                        {e.editKey && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(e.editKey as string);
+                                notify('Clave de edición copiada.');
+                              } catch {
+                                notify('No pude copiar.', true);
+                              }
+                            }}
+                          >
+                            Clave
+                          </button>
+                        )}
                         <button onClick={() => setHistory(removeHistory(e.code))}>Borrar</button>
                       </div>
                     </div>
@@ -784,7 +823,30 @@ export default function App() {
               <FiShare2 aria-hidden="true" /> Compartir con…
             </button>
           )}
-          <button onClick={() => setShareOpen(false)}>Cerrar</button>
+          {savedKey && (
+            <div className="keybox">
+              <b>Tu clave de edición (solo se muestra una vez)</b>
+              <p className="muted">
+                Con ella puedes actualizar este link después. Se guardó en tu historial de este navegador.
+              </p>
+              <div className="row">
+                <code>{savedKey.editKey}</code>
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(savedKey.editKey);
+                      notify('Clave copiada.');
+                    } catch {
+                      notify('No pude copiar.', true);
+                    }
+                  }}
+                >
+                  Copiar
+                </button>
+              </div>
+            </div>
+          )}
+          <button onClick={() => { setShareOpen(false); setSavedKey(null); }}>Cerrar</button>
         </div>
       )}
 

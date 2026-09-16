@@ -1,14 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Mi lista Casa Ley",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Lee tu carrito de Casa Ley, muéstralo en página y clona links compartidos.",
   "action": {
     "default_title": "Mi lista Casa Ley",
     "default_popup": "popup.html"
   },
-  "permissions": ["activeTab", "scripting"],
-  "host_permissions": ["https://tusuper.casaley.com.mx/*"],
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["https://tusuper.casaley.com.mx/*", "https://pdkrtsrfaygeungcolde.supabase.co/*"],
   "content_scripts": [
     {
       "matches": ["https://tusuper.casaley.com.mx/*"],
