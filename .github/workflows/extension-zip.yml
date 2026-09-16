@@ -1,0 +1,32 @@
+name: Empaquetar extension
+
+# Si cambia extension/, regenera extension.zip y lo commitea.
+# El link de descarga siempre queda con lo último (evita zips olvidados).
+on:
+  push:
+    branches: [main]
+    paths: ['extension/**']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: extension-zip
+  cancel-in-progress: false
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rm -f extension.zip && cd extension && zip -r ../extension.zip . -x '.*'
+      - run: |
+          if [ -n "$(git status --short extension.zip)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add extension.zip
+            git commit -m "extension.zip actualizado [skip ci]"
+            git push
+          else
+            echo "zip sin cambios"
+          fi
