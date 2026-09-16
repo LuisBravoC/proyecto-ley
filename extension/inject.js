@@ -50,15 +50,58 @@
     b.innerHTML = ICON + '<span>Compartir</span>';
     b.addEventListener('click', function () {
       var label = b.querySelector('span');
-      var code = buildCode();
-      if (!code) {
-        if (label) label.textContent = 'Vacío';
-        setTimeout(function () { if (label) label.textContent = 'Compartir'; }, 2000);
-        return;
-      }
-      window.open(PAGES_URL + '#c=' + code + '&autosave=1', '_blank');
+      var setLabel = function (t) { if (label) label.textContent = t; };
+      var done = function () { setTimeout(function () { setLabel('Compartir'); }, 2500); };
+      openPersonalOrSnapshot(setLabel, done);
     });
     return b;
+  }
+
+  // Con lista personal: empuja el carrito a tu código fijo y abre tu link.
+  // Sin lista personal: abre la página para crear un snapshot nuevo.
+  async function openPersonalOrSnapshot(setLabel, done) {
+    var personal = null;
+    try {
+      personal = (await chrome.storage.local.get('leypersonal')).leypersonal || null;
+    } catch (e) { /* sigue sin personal */ }
+    if (!personal || !personal.code || !personal.key) {
+      var code = buildCode();
+      if (!code) { setLabel('Vacío'); done(); return; }
+      window.open(PAGES_URL + '#c=' + code + '&autosave=1', '_blank');
+      return;
+    }
+    var built = buildShareObject();
+    if (!built) { setLabel('Vacío'); done(); return; }
+    setLabel('Sincronizando…');
+    try {
+      var res = await fetch(FN_URL, {
+        method: 'POST',
+        headers: {
+          'apikey': FN_ANON,
+          'Authorization': 'Bearer ' + FN_ANON,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: personal.code, edit_key: personal.key, share: built.share }),
+      });
+      if (!res.ok) {
+        var errText = 'Error ' + res.status;
+        try {
+          var ej = await res.json();
+          if (ej && ej.error) errText = String(ej.error);
+        } catch (e) { /* usa el HTTP */ }
+        setLabel(errText);
+        done();
+        return;
+      }
+      personal.lastSig = built.code;
+      try { await chrome.storage.local.set({ leypersonal: personal }); } catch (e) { /* sigue */ }
+      window.open(PAGES_URL + '?c=' + personal.code, '_blank');
+      setLabel('Listo ✓');
+      done();
+    } catch (e) {
+      setLabel('Sin conexión');
+      done();
+    }
   }
 
   // Encuentra el header del drawer ("Tu carrito") y el botón Vaciar.
