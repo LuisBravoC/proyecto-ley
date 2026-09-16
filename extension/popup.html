@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<style>
+  body{width:340px;font-family:system-ui,Roboto,Arial,sans-serif;margin:0;padding:14px;color:#222}
+  h3{margin:0 0 8px;font-size:15px}
+  button{width:100%;padding:10px;margin:4px 0;border-radius:10px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:14px}
+  button.primary{background:#0a7b2e;color:#fff;border-color:#0a7b2e}
+  button:disabled{opacity:.5;cursor:wait}
+  textarea{width:100%;box-sizing:border-box;min-height:56px;margin-top:6px;font-size:12px}
+  #status{background:#f4f4f4;border-radius:8px;padding:8px;margin-top:8px;font-size:13px;white-space:pre-wrap}
+  #status.err{background:#fdecea}
+  #status.ok{background:#e7f4ea}
+  .hint{font-size:12px;color:#666;margin-top:8px}
+</style>
+</head>
+<body>
+<h3>Mi lista Casa Ley</h3>
+<button id="btnOpen" class="primary">Abrir mi carrito en página</button>
+<button id="btnCopy">Copiar link para compartir</button>
+<textarea id="importInput" placeholder="Pegar link #c=... para clonar aquí"></textarea>
+<button id="btnClone">Clonar lista en este carrito</button>
+<div id="status">Listo.</div>
+<p class="hint">Lee solo en tusuper.casaley.com.mx. El link lleva productos, nunca tu sesión.</p>
+<script src="popup.js"></script>
+</body>
+</html>

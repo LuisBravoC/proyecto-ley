@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lista Casa Ley compartida</title>
+<style>
+  body{font-family:system-ui,Roboto,Arial,sans-serif;max-width:760px;margin:0 auto;padding:16px;color:#222}
+  .card{border:1px solid #ddd;border-radius:12px;padding:12px;margin:10px 0;display:flex;gap:12px;align-items:center}
+  .card img{width:64px;height:64px;object-fit:cover;border-radius:8px;background:#f5f5f5}
+  .muted{color:#666;font-size:.9em}
+  button{padding:10px 14px;border-radius:10px;border:1px solid #ccc;background:#fff;cursor:pointer;margin:4px 4px 4px 0}
+  button.primary{background:#0a7b2e;color:#fff;border-color:#0a7b2e}
+  textarea{width:100%;min-height:70px}
+  #msg{background:#f6f6f6;padding:10px;border-radius:8px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h1>Lista Casa Ley compartida</h1>
+<p class="muted" id="meta">Pega el link o código <code>#c=...</code> para ver la lista.</p>
+
+<textarea id="input" placeholder="Pega aquí el link compartido o el código #c=..."></textarea><br>
+<button id="btnVer">Ver lista</button>
+<button id="btnCopiar">Copiar como texto</button>
+<button id="btnClonar" class="primary">Clonar en mi carrito (estando en tusuper)</button>
+<div id="msg"></div>
+<div id="lista"></div>
+
+<script>
+// Config — GitHub Pages + futuro backend (ver plan-backend.md)
+var VIEWER_VERSION = 'v1-hash';
+var BACKEND_URL = null; // futuro: 'https://xyzcompany.supabase.co' → activará links cortos ?c=ABC123
+// Formato v1: {v:1, b:"1086", p:[[ProductId, Quantity, artdesc, special_price, normal_price, unitmeasure, picture_name, GRAMS, total], ...]}
+// Encode: base64url(JSON)
+function b64urlEncode(obj){
+  const json = JSON.stringify(obj);
+  const b64 = btoa(unescape(encodeURIComponent(json)));
+  return b64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function b64urlDecode(code){
+  code = code.trim();
+  // acepta URL completa o solo el código
+  const m = code.match(/#c=([A-Za-z0-9\-_]+)/);
+  if (m) code = m[1];
+  code = code.replace(/-/g,'+').replace(/_/g,'/');
+  while (code.length % 4) code += '=';
+  const bin = atob(code);
+  const json = decodeURIComponent(escape(bin));
+  return JSON.parse(json);
+}
+function fmt(n){ return '$' + Number(n||0).toFixed(2); }
+
+function render(share){
+  const meta = document.getElementById('meta');
+  const lista = document.getElementById('lista');
+  const msg = document.getElementById('msg');
+  lista.innerHTML = ''; msg.textContent = '';
+  if (!share || share.v !== 1 || !Array.isArray(share.p)){
+    msg.textContent = 'Código inválido (se esperaba v1 con p=productos).';
+    return;
+  }
+  meta.textContent = 'Sucursal: ' + (share.b || '?') + ' · ' + share.p.length + ' producto(s). Solo productos, sin tu sesión.';
+  let total = 0;
+  share.p.forEach(function(r){
+    const id=r[0], qty=r[1], desc=r[2], special=r[3], normal=r[4], unit=r[5], img=r[6], grams=r[7], line=r[8];
+    total += Number(line || 0);
+    const div = document.createElement('div');
+    div.className = 'card';
+    // imagen: Casa Ley usa rutas relativas \\Images\\... ; si no resuelve, se oculta
+    let imgHtml = '';
+    if (img) {
+      let src = String(img).replace(/\\/g,'/');
+      if (!/^https?:/.test(src)) src = 'https://tusuper.casaley.com.mx/' + src.replace(/^\//,'');
+      imgHtml = '<img src="'+src+'" onerror="this.style.display=\'none\'" alt="">';
+    }
+    const cantTxt = (unit === 'KG') ? (qty + ' g') + (grams ? ' ('+grams+' g c/u)' : '') : (qty + ' ' + (unit||'PZ'));
+    div.innerHTML = imgHtml + '<div><b>'+desc+'</b><br><span class="muted">'+id+' · '+cantTxt+'</span><br><b>'+fmt(line)+'</b> <span class="muted">c/u '+fmt(special)+'</span></div>';
+    lista.appendChild(div);
+  });
+  const t = document.createElement('h2');
+  t.textContent = 'Estimado total: ' + fmt(total);
+  lista.appendChild(t);
+  window._share = share;
+}
+
+document.getElementById('btnVer').onclick = function(){
+  try { render(b64urlDecode(document.getElementById('input').value)); }
+  catch(e){ document.getElementById('msg').textContent = 'No pude decodificar: ' + e.message; }
+};
+document.getElementById('btnCopiar').onclick = function(){
+  const s = window._share; if(!s){ return; }
+  const lines = s.p.map(function(r){ return '- ' + r[2] + ' (' + r[1] + ' ' + (r[5]||'') + ') ' + fmt(r[8]); });
+  const txt = 'Mi lista Casa Ley (suc ' + (s.b||'?') + '):\n' + lines.join('\n');
+  const msg = document.getElementById('msg');
+  function done(t){ msg.textContent = t; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(function(){ done('Copiado para WhatsApp.'); }, function(){
+      const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); done('Copiado para WhatsApp (fallback).'); } catch(e){ done('Copia manual: ' + txt); }
+      ta.remove();
+    });
+  } else done('Copia manual: ' + txt);
+};
+// Clonar solo funciona abierto desde tusuper.casaley.com.mx (usa TU sesión local, nunca la del link)
+document.getElementById('btnClonar').onclick = async function(){
+  const msg = document.getElementById('msg');
+  const s = window._share;
+  if (!s){ msg.textContent = 'Primero pulsa Ver lista.'; return; }
+  if (!location.hostname.includes('casaley')) {
+    msg.textContent = 'Para clonar: abre este mismo archivo/link DENTRO de tusuper.casaley.com.mx (ej. como bookmarklet) o usa ley-share.js en consola. Aquí solo puedes ver y copiar.';
+    return;
+  }
+  try {
+    msg.textContent = 'Clonando ' + s.p.length + ' productos con tu sesión...';
+    const r = await window.leyImportar(s);
+    msg.textContent = 'Listo. Total backend: $' + r.total + '. Recarga el carrito para verlo.';
+  } catch(e){ msg.textContent = 'Error al clonar: ' + e.message; }
+};
+// autocarga si viene #c= en la URL (GitHub Pages: .../viewer.html#c=...)
+// Gancho backend: si viene ?c=CODIGO_CORTO y BACKEND_URL está configurado, se buscará allá (ver plan-backend.md fase v2)
+(function(){
+  var qs = new URLSearchParams(location.search);
+  var short = qs.get('c');
+  if (short && BACKEND_URL) {
+    document.getElementById('msg').textContent = 'Buscando código ' + short + ' en backend...';
+    fetch(BACKEND_URL + '/rest/v1/lists?code=eq.' + encodeURIComponent(short) + '&select=*,items(*)')
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(rows){
+        if (!rows || !rows.length) throw new Error('código no encontrado');
+        render(rows[0].share);
+      })
+      .catch(function(e){ document.getElementById('msg').textContent = 'Backend: ' + e.message; });
+    return;
+  }
+  if (short && !BACKEND_URL) {
+    // ?c=<base64largo> también se acepta (algunos navegadores cortan el # al compartir)
+    try { document.getElementById('input').value = '#c=' + short; render(b64urlDecode(short)); return; }
+    catch(e){}
+  }
+  if (location.hash.includes('#c=') || location.hash.match(/^[#]?[A-Za-z0-9\-_]{20,}/)) {
+    let h = location.hash.replace(/^#/,'');
+    if (!h.startsWith('c=')) h = 'c=' + h;
+    document.getElementById('input').value = '#' + h;
+    try { render(b64urlDecode('#' + h)); }
+    catch(e){ document.getElementById('msg').textContent = 'El link trae un código que no pude leer (' + e.message + '). Pega el link completo abajo y pulsa Ver lista.'; }
+  }
+})();
+</script>
+</body>
+</html>
