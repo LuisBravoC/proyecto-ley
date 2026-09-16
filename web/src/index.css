@@ -152,6 +152,7 @@ section { scroll-margin-top: 72px; }
 }
 .sidebar button:hover { background: var(--caja); }
 .sidebar button.active { background: var(--caja); }
+.sidebar-foot { margin-top: auto; padding: 12px 12px 4px; font-size: 11px; }
 @media (max-width: 640px) {
   /* En celular no hay espacio para empujar: panel superpuesto */
   .sidebar {

@@ -545,8 +545,11 @@ export default function App() {
           <nav className="sidebar-inner" aria-label="Menú principal">
             <button onClick={goHome} className={route === 'home' ? 'active' : ''} aria-current={route === 'home' ? 'page' : undefined}>Inicio</button>
             <button onClick={goHistorial} className={route === 'historial' ? 'active' : ''} aria-current={route === 'historial' ? 'page' : undefined}>Historial</button>
-            <button onClick={goInstalar} className={route === 'instalar' ? 'active' : ''} aria-current={route === 'instalar' ? 'page' : undefined}>Extensión</button>
+            <button onClick={goInstalar} className={route === 'instalar' ? 'active' : ''} aria-current={route === 'instalar' ? 'page' : undefined}>Instalar extensión</button>
             <button onClick={goAyuda} className={route === 'ayuda' ? 'active' : ''} aria-current={route === 'ayuda' ? 'page' : undefined}>Cómo funciona</button>
+            <div className="sidebar-foot muted">
+              compilación {BUILD_LABEL} · hover {HOVER_CAPABLE ? 'sí' : 'no'}
+            </div>
           </nav>
         </aside>
         <div className="content">
@@ -717,9 +720,7 @@ export default function App() {
                   <span className="muted">Subtotal</span>
                   <b>{money(shareTotal(share))}</b>
                 </div>
-                <p className="muted build-tag">
-                  compilación {BUILD_LABEL} · hover {HOVER_CAPABLE ? 'sí' : 'no'}
-                </p>
+                <p className="muted">El total final se confirma antes de pagar.</p>
               </>
             )}
           </>
