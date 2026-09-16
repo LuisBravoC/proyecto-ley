@@ -162,33 +162,137 @@ $('btnClone').onclick = async () => {
   } catch (e) { status(friendly(e), 'err'); }
 };
 
-async function autoGet() {
+// --- Lista personal: un código fijo por persona. Todo lo demás lo usa.
+async function personalGet() {
+  const o = await chrome.storage.local.get('leypersonal');
+  return o.leypersonal || null;
+}
+async function personalSet(p) { await chrome.storage.local.set({ leypersonal: p }); }
+// Migra la config anterior (leyauto) una sola vez.
+async function migrateLegacy() {
+  if (await personalGet()) return;
   const o = await chrome.storage.local.get('leyauto');
-  return o.leyauto || null;
+  if (o.leyauto && o.leyauto.code && o.leyauto.key) {
+    await personalSet({
+      code: o.leyauto.code, key: o.leyauto.key,
+      on: !!o.leyauto.on, lastSig: o.leyauto.lastSig || null,
+    });
+  }
+}
+async function sha256Hex(s) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+function genCode(n) {
+  const ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  n = n || 6;
+  const a = new Uint8Array(n);
+  crypto.getRandomValues(a);
+  let s = '';
+  for (const x of a) s += ABC[x % ABC.length];
+  return s;
+}
+function genEditKey(n) {
+  const ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  n = n || 24;
+  const a = new Uint8Array(n);
+  crypto.getRandomValues(a);
+  let s = '';
+  for (const x of a) s += ABC[x % ABC.length];
+  return s;
 }
 
-async function refreshAutoBtn() {
-  const c = await autoGet();
-  $('btnAuto').textContent = (c && c.on) ? ('Auto ON · ' + c.code) : 'Activar auto-actualizar';
+async function refreshPersonal() {
+  const p = await personalGet();
+  $('personal').innerHTML = p
+    ? ('Mi lista: <b>' + p.code + '</b>' + (p.on ? ' · auto ON' : ' · auto OFF'))
+    : 'Sin lista personal todavía.';
+  $('btnAuto').textContent = (p && p.on) ? 'Desactivar auto' : 'Activar auto';
+  $('btnPersonal').style.display = p ? 'none' : '';
 }
+
+$('btnPersonal').onclick = async () => {
+  status('Leyendo carrito…');
+  try {
+    const r = await readCurrentCart();
+    status('Creando tu lista…');
+    const code = genCode(), key = genEditKey();
+    const total = Math.round(r.share.p.reduce((t, p) => t + Number(p[8] || 0), 0) * 100) / 100;
+    const res = await fetch(SUPABASE_URL + '/rest/v1/lists', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON,
+        'Content-Type': 'application/json', 'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        code: code, branch: r.share.b || null, store_name: r.share.n || null,
+        creator_name: r.share.by || null, label: null, edit_key: await sha256Hex(key),
+        share: r.share, item_count: r.share.p.length, est_total: total,
+      }),
+    });
+    if (!res.ok) throw new Error('Supabase ' + res.status);
+    await personalSet({ code: code, key: key, on: true, lastSig: r.code });
+    status('Tu lista es ' + code + ' (auto ON).', 'ok');
+    refreshPersonal();
+  } catch (e) { status(friendly(e), 'err'); }
+};
+
+$('btnMyLink').onclick = async () => {
+  const p = await personalGet();
+  if (!p) { status('Primero crea tu lista personal.', 'err'); return; }
+  const link = PAGES_URL + '?c=' + p.code;
+  try {
+    await navigator.clipboard.writeText(link);
+    status('Tu link copiado: ' + link, 'ok');
+  } catch (_e) { status('Tu link:\n' + link); }
+};
+
+async function pushUpdate(code, key, share) {
+  const res = await fetch(SUPABASE_URL + '/functions/v1/update-list', {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ code: code, edit_key: key, share: share }),
+  });
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error((j && j.error) || ('HTTP ' + res.status));
+  }
+}
+
+$('btnSyncNow').onclick = async () => {
+  const p = await personalGet();
+  if (!p) { status('Primero crea tu lista personal.', 'err'); return; }
+  status('Leyendo carrito…');
+  try {
+    const r = await readCurrentCart();
+    status('Sincronizando ' + p.code + '…');
+    await pushUpdate(p.code, p.key, r.share);
+    p.lastSig = r.code;
+    await personalSet(p);
+    status('Sincronizado: ' + p.code + ' con ' + r.count + ' producto(s).', 'ok');
+  } catch (e) { status(friendly(e), 'err'); }
+};
 
 $('btnAuto').onclick = async () => {
-  const cur = await autoGet();
-  if (cur && cur.on) {
-    cur.on = false;
-    await chrome.storage.local.set({ leyauto: cur });
-    status('Auto-actualizar desactivado.', '');
-    refreshAutoBtn();
-    return;
-  }
+  const p = await personalGet();
+  if (!p) { status('Primero crea tu lista personal.', 'err'); return; }
+  p.on = !p.on;
+  await personalSet(p);
+  status(p.on ? ('Auto ON para ' + p.code + '.') : 'Auto desactivado.', p.on ? 'ok' : '');
+  refreshPersonal();
+};
+
+$('btnAdopt').onclick = async () => {
   const code = parseShortCode($('updCode').value || $('importInput').value);
-  if (!code) { status('Pega el link ?c= de tu foto primero.', 'err'); return; }
-  const key = $('updKey').value.trim() || await leyKeyGet(code);
+  if (!code) { status('Pega tu link ?c= primero.', 'err'); return; }
+  const key = $('updKey').value.trim();
   if (!key) { status('Pega tu clave de edición.', 'err'); return; }
-  await chrome.storage.local.set({ leyauto: { code: code, key: key, on: true, lastSig: null } });
-  $('updKey').value = key;
-  status('Auto ON para ' + code + ': cada cambio del carrito se sube solo (con esta pestaña abierta).', 'ok');
-  refreshAutoBtn();
+  await personalSet({ code: code, key: key, on: false, lastSig: null });
+  status('Lista ' + code + ' adoptada como tuya. Activa el auto cuando quieras.', 'ok');
+  refreshPersonal();
 };
 
 $('btnHist').onclick = async () => {
@@ -204,6 +308,8 @@ function parseShortCode(input) {
 }
 
 async function leyKeyGet(code) {
+  const p = await personalGet();
+  if (p && p.code === code && p.key) return p.key;
   const o = await chrome.storage.local.get('leykeys');
   return ((o && o.leykeys) || {})[code] || '';
 }
@@ -252,10 +358,11 @@ $('btnUpdate').onclick = async () => {
   } catch (e) { status(friendly(e), 'err'); }
 };
 
-// Al abrir: muestra resumen del carrito actual y versión (como el badge de la página).
+// Al abrir: resumen del carrito, lista personal y versión.
 (async () => {
   $('ver').textContent = 'v' + chrome.runtime.getManifest().version;
-  refreshAutoBtn();
+  await migrateLegacy();
+  refreshPersonal();
   try {
     const r = await readCurrentCart();
     lastCode = r.code;

@@ -119,7 +119,7 @@
   // - Poll cada 5s, solo con pestaña visible y si está activado para una foto.
   // - Compara la firma del carrito: sin cambios = cero requests.
   // - Carrito vacío no se empuja (el servidor exige ≥1 producto).
-  var AUTO_KEY = 'leyauto';
+  var AUTO_KEY = 'leypersonal'; // la personal manda; leyauto es legado (se migra)
   var FN_URL = 'https://pdkrtsrfaygeungcolde.supabase.co/functions/v1/update-list';
   var FN_ANON = 'sb_publishable_3jDw8StQcSVaPxGIimaX5Q_-vSLzt5n'; // pública por diseño
   var pushing = false;
@@ -127,7 +127,15 @@
   async function autoTick() {
     if (document.hidden || pushing) return;
     try {
-      var cfg = (await chrome.storage.local.get(AUTO_KEY))[AUTO_KEY];
+      var all = await chrome.storage.local.get(['leypersonal', 'leyauto']);
+      var cfg = all.leypersonal || null;
+      if (!cfg && all.leyauto && all.leyauto.code && all.leyauto.key) {
+        cfg = {
+          code: all.leyauto.code, key: all.leyauto.key,
+          on: !!all.leyauto.on, lastSig: all.leyauto.lastSig || null,
+        };
+        try { await chrome.storage.local.set({ leypersonal: cfg }); } catch (e) { /* sigue */ }
+      }
       if (!cfg || !cfg.on || !cfg.code || !cfg.key) return;
       var built = buildShareObject();
       if (!built) return;
@@ -154,7 +162,7 @@
           return; // reintenta en el próximo ciclo
         }
         cfg.lastSig = built.code;
-        await chrome.storage.local.set({ [AUTO_KEY]: cfg });
+        await chrome.storage.local.set({ leypersonal: cfg });
         setBtnState('Sincronizado ✓');
       } finally {
         pushing = false;

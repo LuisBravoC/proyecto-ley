@@ -75,18 +75,28 @@
     font-size: 12px;
     margin: 0;
   }
+  details { margin: 6px 0; font-size: 13px; color: #a7b0ba; }
+  details input { margin-top: 6px; }
 </style>
 </head>
 <body>
 <h3>Mi lista Casa Ley</h3>
 <p class="sub" id="summary">Leyendo carrito…</p>
-<button id="btnOpen" class="primary">Abrir mi carrito en página</button>
+<p class="sub" id="personal">Sin lista personal todavía.</p>
+<button id="btnPersonal" class="primary">Crear mi lista personal</button>
+<button id="btnMyLink">Copiar mi link</button>
+<button id="btnSyncNow">Sincronizar ahora</button>
+<button id="btnAuto">Activar auto</button>
+<button id="btnOpen">Abrir mi carrito en página</button>
 <button id="btnCopy">Copiar link para compartir</button>
-<textarea id="importInput" placeholder="Pegar link #c=... para clonar aquí"></textarea>
+<textarea id="importInput" placeholder="Pegar link para clonar aquí"></textarea>
 <button id="btnClone">Clonar lista en este carrito</button>
-<input id="updCode" placeholder="Link ?c= de tu foto (para actualizar)" />
-<input id="updKey" type="password" placeholder="Clave de edición" autocomplete="off" />
-<button id="btnUpdate">Actualizar foto con este carrito</button>
+<details>
+  <summary>Usar otro código como mío</summary>
+  <input id="updCode" placeholder="Link ?c= de tu foto" />
+  <input id="updKey" type="password" placeholder="Clave de edición" autocomplete="off" />
+  <button id="btnAdopt">Adoptar</button>
+</details>
 <button id="btnAuto">Activar auto-actualizar</button>
 <div id="status">Listo.</div>
 <div class="foot">

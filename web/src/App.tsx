@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FiDownload, FiGrid, FiLink, FiList, FiMessageCircle, FiShare2 } from 'react-icons/fi';
+import { FiCamera, FiDownload, FiGrid, FiLink, FiList, FiMessageCircle, FiShare2 } from 'react-icons/fi';
 import {
   BOOKMARKLET_HREF,
   b64urlDecode,
@@ -436,6 +436,35 @@ export default function App() {
     }
   };
 
+  // Foto para el que recibe: congela lo que ve en un código nuevo propio,
+  // independiente de lo que siga cambiando el dueño original.
+  const saveCopy = async (): Promise<boolean> => {
+    if (!share) return false;
+    if (!backendReady) {
+      notify('Para guardar se necesita backend (aún no configurado).', true);
+      return false;
+    }
+    notify('Guardando copia…');
+    try {
+      const label = (shareLabel.trim() || defaultLabel()) + ' (copia)';
+      const { code, editKey } = await saveListOnline(share, label);
+      setHistory(recordHistory(share, 'online', code, label, editKey));
+      setSavedKey({ code, editKey });
+      const url = window.location.origin + window.location.pathname + '?c=' + code;
+      try {
+        await navigator.clipboard.writeText(url);
+        notify('Copia guardada: ' + code);
+      } catch {
+        notify('Copia guardada: ' + code, true);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      notify('No pude guardar la copia: ' + (e as Error).message, true);
+      return false;
+    }
+  };
+
   const canNativeShare =
     typeof navigator !== 'undefined' &&
     !!(navigator as Navigator & { share?: unknown }).share;
@@ -836,6 +865,9 @@ export default function App() {
               <FiShare2 aria-hidden="true" /> Compartir con…
             </button>
           )}
+          <button className="sheet-opt" onClick={() => runShare(saveCopy)}>
+            <FiCamera aria-hidden="true" /> Guardar copia (foto congelada)
+          </button>
           {savedKey && (
             <div className="keybox">
               <b>Tu clave de edición (solo se muestra una vez)</b>
