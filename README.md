@@ -34,7 +34,7 @@ Sin `.env.local` la app funciona en modo link local. Build con chequeo de tipos:
 
 1. Crea el proyecto en [supabase.com](https://supabase.com) y corre `supabase/schema.sql` en el SQL Editor (incluye tabla, RLS y Realtime; abajo del archivo van las migraciones si ya la habías creado).
 2. Edge Functions → New Function `update-list` → pega `supabase/functions/update-list/index.ts` → Deploy.
-3. Local: `web/.env.local` con `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (**publishable**, jamás la secret).
+3. Local: `web/.env.local` con `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (**publishable**).
 4. Producción: repo → Settings → Secrets → Actions con esas dos variables.
 
 ## Extensión (desarrollo)
