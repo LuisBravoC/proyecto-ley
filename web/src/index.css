@@ -237,6 +237,15 @@ section { scroll-margin-top: 72px; }
   border-radius: 6px;
 }
 [data-theme='light'] .discount-box { color: #fff; }
+/* Destello al llegar/cambiar un producto por actualización remota */
+@keyframes flashRow {
+  0% { background: rgba(53, 181, 88, 0.35); border-color: var(--verde); }
+  100% { background: var(--tarjeta); }
+}
+.card.flash { animation: flashRow 1.8s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .card.flash { animation: none; }
+}
 /* Segmentado lista/cuadrícula, compacto */
 .view-toggle {
   display: inline-flex;

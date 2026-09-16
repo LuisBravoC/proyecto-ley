@@ -68,14 +68,23 @@ function MoonIcon() {
   );
 }
 
-function ProductCard({ r, grid }: { r: ShareItem; grid: boolean }) {
+function diffShare(prev: ShareV1 | null, next: ShareV1): { added: string[]; removed: number } {
+  if (!prev) return { added: next.p.map((r) => r[0]), removed: 0 };
+  const before = new Map(prev.p.map((r) => [r[0], r[1]]));
+  const added = next.p.filter((r) => before.get(r[0]) !== r[1]).map((r) => r[0]);
+  const after = new Set(next.p.map((r) => r[0]));
+  const removed = prev.p.filter((r) => !after.has(r[0])).length;
+  return { added, removed };
+}
+
+function ProductCard({ r, grid, flash }: { r: ShareItem; grid: boolean; flash: boolean }) {
   const [hideImg, setHideImg] = useState(false);
   const src = imgUrl(r[6]);
   const offer = hasOffer(r);
   const pct = discountPct(r);
   if (grid) {
     return (
-      <article className="card grid-card">
+      <article className={`card grid-card${flash ? ' flash' : ''}`}>
         {src && !hideImg && <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />}
         <div className="card-body">
           <b className="pname">{r[2]}</b>
@@ -96,7 +105,7 @@ function ProductCard({ r, grid }: { r: ShareItem; grid: boolean }) {
     );
   }
   return (
-    <article className="card row-card">
+    <article className={`card row-card${flash ? ' flash' : ''}`}>
       {src && !hideImg && <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />}
       <div className="card-body">
         <b className="pname">{r[2]}</b>
@@ -115,6 +124,9 @@ function ProductCard({ r, grid }: { r: ShareItem; grid: boolean }) {
 
 export default function App() {
   const [share, setShare] = useState<ShareV1 | null>(null);
+  const [flashIds, setFlashIds] = useState<string[]>([]);
+  const shareRef = useRef<ShareV1 | null>(null);
+  const flashTimer = useRef<number | null>(null);
   const [toast, setToast] = useState<{ id: number; text: string; err?: boolean } | null>(null);
   const toastTimer = useRef<number | null>(null);
   const notify = useCallback((text: string, err = false) => {
@@ -126,6 +138,28 @@ export default function App() {
     if (toastTimer.current) window.clearTimeout(toastTimer.current);
     setToast(null);
   }, []);
+
+  // Actualización remota (Realtime/poll): anima altas y cambios, avisa bajas.
+  const applyRemoteUpdate = useCallback(
+    (ns: ShareV1) => {
+      const { added, removed } = diffShare(shareRef.current, ns);
+      shareRef.current = ns;
+      setShare(ns);
+      if (added.length === 0 && removed === 0) return;
+      if (flashTimer.current) window.clearTimeout(flashTimer.current);
+      setFlashIds(added);
+      flashTimer.current = window.setTimeout(() => setFlashIds([]), 1800);
+      const parts: string[] = [];
+      if (added.length) parts.push(`+${added.length} nuevo(s)`);
+      if (removed) parts.push(`−${removed} quitado(s)`);
+      notify('Lista actualizada: ' + parts.join(', ') + '.');
+    },
+    [notify],
+  );
+
+  useEffect(() => {
+    shareRef.current = share;
+  }, [share]);
   const [input, setInput] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -234,14 +268,9 @@ export default function App() {
         const mine = loadHistory().find((e) => e.code === upper);
         setHistory(recordHistory(s, 'online', upper, meta.label || undefined, mine?.editKey));
         if (unsubRef.current) unsubRef.current();
-        unsubRef.current = subscribeList(upper, (ns) => {
-          setShare(ns);
-          notify('Lista actualizada.');
-        });
+        unsubRef.current = subscribeList(upper, (ns) => applyRemoteUpdate(ns));
         if (getRoute() !== 'home') window.location.hash = '#/';
       } catch (e) {
-        setShare(null);
-        setSnapshot(null);
         notify('No encontré ese código (' + (e as Error).message + ').');
       }
       return;
@@ -287,16 +316,13 @@ export default function App() {
           // Tiempo real: si el dueño la actualiza, se refresca sola.
           // + poll cada 30s como respaldo (por si Realtime no está activo).
           if (unsubRef.current) unsubRef.current();
-          unsubRef.current = subscribeList(upper, (ns) => {
-            setShare(ns);
-            notify('Lista actualizada.');
-          });
+          unsubRef.current = subscribeList(upper, (ns) => applyRemoteUpdate(ns));
           if (pollRef.current) window.clearInterval(pollRef.current);
           pollRef.current = window.setInterval(async () => {
             if (document.hidden) return;
             try {
               const { share: ns } = await loadListOnline(upper);
-              setShare((cur) => (JSON.stringify(cur) === JSON.stringify(ns) ? cur : ns));
+              if (JSON.stringify(shareRef.current) !== JSON.stringify(ns)) applyRemoteUpdate(ns);
             } catch {
               /* reintenta en el siguiente ciclo */
             }
@@ -814,7 +840,7 @@ export default function App() {
                 </div>
                 <div className={view === 'grid' ? 'grid' : ''}>
                   {share.p.map((r) => (
-                    <ProductCard key={r[0]} r={r} grid={view === 'grid'} />
+                    <ProductCard key={r[0]} r={r} grid={view === 'grid'} flash={flashIds.includes(r[0])} />
                   ))}
                 </div>
                 <div className="total-card">
