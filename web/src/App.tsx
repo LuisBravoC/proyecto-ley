@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { FiGrid, FiList } from 'react-icons/fi';
 import {
   b64urlDecode,
   canCloneHere,
@@ -394,18 +395,21 @@ export default function App() {
                   tienda.
                 </p>
                 {msg && <div id="msg">{msg}</div>}
-                <div className="row view-switch-row" aria-label="Vista de lista">
-                  <span className={`muted${view === 'lista' ? ' on' : ''}`}>Lista</span>
+                <div className="view-toggle" role="group" aria-label="Vista de lista">
                   <button
-                    className={`switch${view === 'grid' ? ' on' : ''}`}
-                    role="switch"
-                    aria-checked={view === 'grid'}
-                    aria-label="Alternar entre vista de lista y cuadrícula"
-                    onClick={() => setView((v) => (v === 'lista' ? 'grid' : 'lista'))}
+                    className={view === 'lista' ? 'primary' : ''}
+                    aria-pressed={view === 'lista'}
+                    onClick={() => setView('lista')}
                   >
-                    <span className="knob" />
+                    <FiList aria-hidden="true" /> Lista
                   </button>
-                  <span className={`muted${view === 'grid' ? ' on' : ''}`}>Cuadrícula</span>
+                  <button
+                    className={view === 'grid' ? 'primary' : ''}
+                    aria-pressed={view === 'grid'}
+                    onClick={() => setView('grid')}
+                  >
+                    <FiGrid aria-hidden="true" /> Cuadrícula
+                  </button>
                 </div>
                 <div className={view === 'grid' ? 'grid' : ''}>
                   {share.p.map((r) => (
