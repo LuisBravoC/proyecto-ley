@@ -148,7 +148,7 @@ export default function App() {
     openTimer.current = window.setTimeout(() => {
       setMenuOpen(true);
       openTimer.current = null;
-    }, 250);
+    }, 120);
   };
   const scheduleClose = () => {
     if (!canHover()) return;
@@ -160,7 +160,7 @@ export default function App() {
     closeTimer.current = window.setTimeout(() => {
       setMenuOpen(false);
       closeTimer.current = null;
-    }, 300);
+    }, 200);
   };
   useEffect(() => () => cancelHoverTimers(), []);
   const [updateAvail, setUpdateAvail] = useState(false);

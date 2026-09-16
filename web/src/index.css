@@ -110,7 +110,7 @@ section { scroll-margin-top: 72px; }
   left: 0;
   top: 65px;
   bottom: 0;
-  width: 14px;
+  width: 32px;
   z-index: 26;
 }
 /* Sidebar que empuja el contenido (debajo del topbar, no encima) */
