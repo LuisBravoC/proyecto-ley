@@ -595,7 +595,6 @@ export default function App() {
               <>
                 <p className="meta-line muted">
                   {share.p.length} {share.p.length === 1 ? 'producto' : 'productos'}
-                  {share.by ? ` · de ${share.by}` : ''}
                   {storeName(share) ? ` · ${storeName(share)}` : ''} · Precios de referencia, pueden variar en
                   tienda.
                 </p>
