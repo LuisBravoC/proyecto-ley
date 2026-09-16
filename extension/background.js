@@ -5,8 +5,8 @@
 
 // 'bundled' = viewer empaquetado en la extensión (funciona sin internet extra).
 // 'pages'   = tu GitHub Pages (misma página, sirve para compartir el link tal cual).
-const MODE = 'bundled';
-const PAGES_URL = 'https://<usuario>.github.io/<repo>/viewer.html'; // usado solo si MODE='pages'
+const MODE = 'pages';
+const PAGES_URL = 'https://luisbravoc.github.io/proyecto-ley/'; // app React en vivo
 
 // Esta función se inyecta en la pestaña de Casa Ley: debe ser autocontenida
 // (sin referencias externas) porque Chrome la serializa.

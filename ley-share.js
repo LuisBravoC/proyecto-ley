@@ -4,8 +4,8 @@
 // El link NUNCA incluye CustomerID / token_web / WebId. Solo productos + sucursal.
 (function(){
 const API = 'https://serviciosapp.casaley.com.mx/rails/api/bulk_add_to_cart_web';
-// Cámbialo por tu GitHub Pages cuando lo publiques, ej: 'https://usuario.github.io/proyecto-ley/viewer.html'
-const VIEWER_URL = 'viewer.html';
+// App React en vivo (GitHub Pages). Los links generados se abren y comparten directo.
+const VIEWER_URL = 'https://luisbravoc.github.io/proyecto-ley/';
 
 function b64urlEncode(obj){
   const json = JSON.stringify(obj);

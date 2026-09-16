@@ -5,8 +5,8 @@
 
 // 'bundled' = viewer empaquetado (integral, sin internet extra).
 // 'pages'   = GitHub Pages (el mismo link sirve para compartir).
-const MODE = 'bundled';
-const PAGES_URL = 'https://<usuario>.github.io/<repo>/viewer.html'; // para compartir con otros
+const MODE = 'pages';
+const PAGES_URL = 'https://luisbravoc.github.io/proyecto-ley/'; // app React en vivo
 const API = 'https://serviciosapp.casaley.com.mx/rails/api/bulk_add_to_cart_web';
 
 function readCartFromPage() {
