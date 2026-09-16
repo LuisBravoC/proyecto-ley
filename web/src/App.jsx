@@ -5,6 +5,7 @@ import {
   storeName, unitPrice,
 } from './lib/share.js';
 import { backendReady, isShortCode, loadListOnline, saveListOnline } from './lib/backend.js';
+import { checkForUpdate } from './lib/version.js';
 
 function ProductCard({ r }) {
   const [hideImg, setHideImg] = useState(false);
@@ -29,6 +30,21 @@ export default function App() {
   const [share, setShare] = useState(null);
   const [msg, setMsg] = useState('');
   const [input, setInput] = useState('');
+  const [updateAvail, setUpdateAvail] = useState(false);
+
+  // Aviso de versión nueva: revisa cada 60s (solo con pestaña visible).
+  useEffect(() => {
+    if (window.location.protocol === 'file:') return;
+    let stop = false;
+    const check = async () => {
+      if (!document.hidden && !stop && await checkForUpdate()) setUpdateAvail(true);
+    };
+    check();
+    const t = setInterval(check, 60000);
+    const onVis = () => { if (!document.hidden) check(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { stop = true; clearInterval(t); document.removeEventListener('visibilitychange', onVis); };
+  }, []);
 
   const load = useCallback((code) => {
     try {
@@ -116,6 +132,9 @@ export default function App() {
   return (
     <main>
       <h1>Mi lista Casa Ley</h1>
+      {updateAvail && (
+        <p className="muted">Hay una versión más reciente de la página. <button onClick={() => window.location.reload()}>Recargar</button></p>
+      )}
       <p className="muted">
         {share
           ? `${share.p.length} ${share.p.length === 1 ? 'producto' : 'productos'}${storeName(share) ? ` · ${storeName(share)}` : ''} · Precios de referencia, pueden variar en tienda.`
