@@ -1,18 +1,10 @@
 // popup.js — interfaz de la extensión (MV3)
-// Botones: abrir carrito en viewer, copiar link, clonar link en la pestaña actual.
 // Las funciones readCartFromPage / cloneCartInPage se INYECTAN en la pestaña de
 // Casa Ley: deben ser autocontenidas (Chrome las serializa, sin referencias externas).
-
-// 'bundled' = viewer empaquetado (integral, sin internet extra).
-// 'pages'   = GitHub Pages (el mismo link sirve para compartir).
-const MODE = 'pages';
+// Claves Supabase: solo la publishable (pública por diseño, igual que en la página).
 const PAGES_URL = 'https://luisbravoc.github.io/proyecto-ley/'; // app React en vivo
-const API = 'https://serviciosapp.casaley.com.mx/rails/api/bulk_add_to_cart_web';
-// Backend propio (publishable: pública por diseño, va en el bundle de la página).
 const SUPABASE_URL = 'https://pdkrtsrfaygeungcolde.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_3jDw8StQcSVaPxGIimaX5Q_-vSLzt5n';
-// Nota: el guardado online vive en la página (botón Guardar online), no aquí.
-// La extensión solo lee el carrito y lo abre/copia; así no hay keys que configurar.
 
 function readCartFromPage() {
   const CART = JSON.parse(localStorage.getItem('CART') || '{"products":[]}');
@@ -33,6 +25,8 @@ function readCartFromPage() {
 }
 
 function cloneCartInPage(codeInput) {
+  // Autocontenida: NO usar nada fuera de esta función (Chrome la serializa).
+  var API_URL = 'https://serviciosapp.casaley.com.mx/rails/api/bulk_add_to_cart_web';
   var code = String(codeInput || '').trim();
   var m = code.match(/#c=([A-Za-z0-9\-_]+)/) || code.match(/[\?&]c=([A-Za-z0-9\-_]+)/);
   if (m) code = m[1];
@@ -57,7 +51,7 @@ function cloneCartInPage(codeInput) {
   var payload = { CustomerID: USER.id, WebId: WEBSESSION, loyaltyCard: USER.loyaltyCard || '',
     orderType: 1, points: '', products: products, redeempoints: 0,
     register_no: SUC.id || share.b || '1086', user: { token_web: USER.token_web } };
-  return fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
     .then(function (res) { if (!res.ok) throw new Error('API_' + res.status); return res.json(); })
     .then(function (data) {
       var fresh = (data.products || []).map(function (p) {
@@ -85,13 +79,8 @@ function status(msg, cls) {
   el.textContent = msg;
   el.className = cls || '';
 }
-function viewerBase() {
-  return MODE === 'pages' ? PAGES_URL : chrome.runtime.getURL('viewer.html');
-}
-function shareBase() {
-  // Para compartir con OTRO equipo siempre conviene la URL pública de Pages.
-  if (PAGES_URL.indexOf('<usuario>') === -1) return PAGES_URL;
-  return viewerBase();
+function pageUrl() {
+  return PAGES_URL;
 }
 async function activeTab() {
   const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -123,7 +112,7 @@ $('btnOpen').onclick = async () => {
     const r = await readCurrentCart();
     lastCode = r.code;
     lastShare = r.share;
-    await chrome.tabs.create({ url: viewerBase() + '#c=' + r.code });
+    await chrome.tabs.create({ url: pageUrl() + '#c=' + r.code });
     status('Abierto: ' + r.count + ' producto(s)' + (r.store ? ' · ' + r.store : '') + '.', 'ok');
   } catch (e) { status(friendly(e), 'err'); }
 };
@@ -134,16 +123,11 @@ $('btnCopy').onclick = async () => {
     const r = lastCode ? { code: lastCode } : await readCurrentCart();
     lastCode = r.code;
     if (r.share) lastShare = r.share;
-    const link = shareBase() + '#c=' + r.code;
-    // Abrir el viewer local garantiza ver la lista: los links chrome-extension://
-    // NO se pueden pegar en la barra del navegador (Chrome los bloquea), solo
-    // abrirlos desde la propia extensión. Para compartir usa la URL de Pages.
-    await chrome.tabs.create({ url: viewerBase() + '#c=' + r.code });
+    const link = pageUrl() + '#c=' + r.code;
+    await chrome.tabs.create({ url: link });
     try {
       await navigator.clipboard.writeText(link);
-      status(shareBase().startsWith('chrome-extension')
-        ? 'Link copiado + lista abierta. Ojo: ese link local solo abre en tu Chrome.'
-        : 'Link compartible copiado + lista abierta.', 'ok');
+      status('Link compartible copiado + lista abierta.', 'ok');
     } catch (_e) {
       status('Te abrí la lista. No pude autocopiar (permiso). Tu link:\n' + link);
     }

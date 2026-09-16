@@ -866,7 +866,7 @@ export default function App() {
             </button>
           )}
           <button className="sheet-opt" onClick={() => runShare(saveCopy)}>
-            <FiCamera aria-hidden="true" /> Guardar copia (foto congelada)
+            <FiCamera aria-hidden="true" /> Guardar copia
           </button>
           {savedKey && (
             <div className="keybox">
