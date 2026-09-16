@@ -8,13 +8,8 @@
 const MODE = 'pages';
 const PAGES_URL = 'https://luisbravoc.github.io/proyecto-ley/'; // app React en vivo
 const API = 'https://serviciosapp.casaley.com.mx/rails/api/bulk_add_to_cart_web';
-// Backend online (link corto ?c=): pega tu Project URL + publishable (anon) key.
-// La secret JAMÁS va aquí. Sin esto, el botón Guardar online avisa y no hace nada.
-const SUPABASE_URL = '';
-const SUPABASE_ANON_KEY = '';
-function backendReadyExt() {
-  return SUPABASE_URL.indexOf('http') === 0 && SUPABASE_ANON_KEY.length > 20;
-}
+// Nota: el guardado online vive en la página (botón Guardar online), no aquí.
+// La extensión solo lee el carrito y lo abre/copia; así no hay keys que configurar.
 
 function readCartFromPage() {
   const CART = JSON.parse(localStorage.getItem('CART') || '{"products":[]}');
@@ -77,33 +72,6 @@ function cloneCartInPage(codeInput) {
 const $ = (id) => document.getElementById(id);
 let lastCode = null;
 let lastShare = null;
-
-function backendOn(){ return backendReadyExt(); }
-const CODE_ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-function genCode(n) {
-  n = n || 6;
-  const a = new Uint8Array(n);
-  crypto.getRandomValues(a);
-  let s = '';
-  for (const x of a) s += CODE_ABC[x % CODE_ABC.length];
-  return s;
-}
-async function saveOnlineExt(share) {
-  const total = Math.round(share.p.reduce((t, r) => t + Number(r[8] || 0), 0) * 100) / 100;
-  for (let i = 0; i < 5; i++) {
-    const code = genCode();
-    const res = await fetch(SUPABASE_URL + '/rest/v1/lists', {
-      method: 'POST',
-      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-        'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ code: code, branch: share.b || null, store_name: share.n || null,
-        share: share, item_count: share.p.length, est_total: total })
-    });
-    if (res.ok) return code;
-    if (res.status !== 409) throw new Error('Supabase ' + res.status);
-  }
-  throw new Error('No pude generar código, reintenta.');
-}
 
 function status(msg, cls) {
   const el = $('status');
@@ -171,25 +139,6 @@ $('btnCopy').onclick = async () => {
         : 'Link compartible copiado + lista abierta.', 'ok');
     } catch (_e) {
       status('Te abrí la lista. No pude autocopiar (permiso). Tu link:\n' + link);
-    }
-  } catch (e) { status(friendly(e), 'err'); }
-};
-
-$('btnSave').onclick = async () => {
-  if (!backendOn()) { status('Configura SUPABASE_URL y SUPABASE_ANON_KEY en popup.js primero (usa la publishable, nunca la secret).', 'err'); return; }
-  status('Leyendo carrito…');
-  try {
-    const r = lastShare ? { share: lastShare, count: lastShare.p.length } : await readCurrentCart();
-    lastShare = r.share;
-    status('Guardando online…');
-    const code = await saveOnlineExt(r.share);
-    const link = PAGES_URL + '?c=' + code;
-    await chrome.tabs.create({ url: link });
-    try {
-      await navigator.clipboard.writeText(link);
-      status('Link corto copiado + lista abierta: ' + code, 'ok');
-    } catch (_e) {
-      status('Lista abierta. Tu link corto:\n' + link);
     }
   } catch (e) { status(friendly(e), 'err'); }
 };

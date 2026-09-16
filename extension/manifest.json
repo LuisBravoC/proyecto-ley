@@ -8,5 +8,5 @@
     "default_popup": "popup.html"
   },
   "permissions": ["activeTab", "scripting"],
-  "host_permissions": ["https://tusuper.casaley.com.mx/*", "https://*.supabase.co/*"]
+  "host_permissions": ["https://tusuper.casaley.com.mx/*"]
 }
