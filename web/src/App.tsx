@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FiGrid, FiLink, FiList, FiMessageCircle, FiShare2 } from 'react-icons/fi';
+import { FiDownload, FiGrid, FiLink, FiList, FiMessageCircle, FiShare2 } from 'react-icons/fi';
 import {
   BOOKMARKLET_HREF,
   b64urlDecode,
@@ -644,18 +644,26 @@ export default function App() {
               </button>
             </div>
             <h3>Opción 2 · Extensión completa</h3>
+            <div className="dl-card">
+              <span className="dl-icon" aria-hidden="true">
+                <FiDownload size={22} />
+              </span>
+              <div className="grow">
+                <b>extension.zip</b>
+                <br />
+                <span className="muted small">Solo la extensión · ~12 KB · última versión del repo</span>
+              </div>
+              <a
+                className="dl-btn"
+                href="https://github.com/luisbravoc/proyecto-ley/raw/refs/heads/main/extension.zip"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Descargar
+              </a>
+            </div>
             <ol className="steps">
-              <li>
-                Descarga solo la extensión (
-                <a
-                  href="https://github.com/luisbravoc/proyecto-ley/raw/refs/heads/main/extension.zip"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  extension.zip
-                </a>
-                ) y descomprímela.
-              </li>
+              <li>Descomprime el archivo.</li>
               <li>Abre <b>chrome://extensions</b> y activa el modo desarrollador.</li>
               <li>Pulsa “Cargar descomprimida” y elige la carpeta <b>extension/</b>.</li>
               <li>Fija el icono y úsalo en tu carrito de Casa Ley.</li>

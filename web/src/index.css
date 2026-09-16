@@ -312,6 +312,44 @@ section { scroll-margin-top: 72px; }
   cursor: grab;
   text-decoration: none;
 }
+/* Tarjeta de descarga */
+.dl-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--linea);
+  background: var(--tarjeta);
+  border-radius: 16px;
+  padding: 14px;
+  margin: 12px 0;
+  box-shadow: var(--sombra);
+}
+.dl-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(53, 181, 88, 0.16);
+  color: var(--verde);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.dl-card .grow { flex: 1; min-width: 0; }
+.dl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--verde-osc);
+  color: #fff;
+  border-radius: 12px;
+  padding: 11px 18px;
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+[data-theme='dark'] .dl-btn { background: var(--verde); color: #06130a; }
 
 /* Barra compartir */
 .sharebar {
