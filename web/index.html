@@ -3,7 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#121417" />
     <title>Mi lista Casa Ley</title>
+    <script>
+      try {
+        document.documentElement.dataset.theme = localStorage.getItem('ley-theme') || 'dark';
+      } catch (e) {
+        document.documentElement.dataset.theme = 'dark';
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

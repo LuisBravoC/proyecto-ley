@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  BACKEND_URL,
   b64urlDecode,
   canCloneHere,
   cloneShareHere,
@@ -19,49 +18,51 @@ import {
 import { backendReady, isShortCode, loadListOnline, saveListOnline } from './lib/backend';
 import { checkForUpdate } from './lib/version';
 
-type SectionId = 'ver' | 'compartir' | 'clonar' | 'ayuda';
+type Route = 'home' | 'ayuda';
+type Theme = 'dark' | 'light';
 
-const MENU: { id: SectionId; label: string }[] = [
-  { id: 'ver', label: 'Ver lista' },
-  { id: 'compartir', label: 'Compartir' },
-  { id: 'clonar', label: 'Pasar a mi carrito' },
-  { id: 'ayuda', label: 'Cómo funciona' },
-];
+function getRoute(): Route {
+  return window.location.hash.startsWith('#/ayuda') ? 'ayuda' : 'home';
+}
+
+function SunIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+    </svg>
+  );
+}
 
 function ProductCard({ r }: { r: ShareItem }) {
   const [hideImg, setHideImg] = useState(false);
   const src = imgUrl(r[6]);
   const offer = hasOffer(r);
   return (
-    <div className="card">
-      {src && !hideImg && <img src={src} onError={() => setHideImg(true)} alt="" />}
-      <div>
+    <article className="card">
+      {src && !hideImg && <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />}
+      <div className="card-body">
         <b>{r[2]}</b>
-        <br />
         <span className="muted">{qtyText(r)}</span>
-        <br />
-        <b>{money(r[8])}</b>{' '}
-        {offer ? (
-          <span className="offer">
-            Oferta {money(r[3])} c/u (antes {money(r[4])})
-          </span>
-        ) : (
-          <span className="muted">{money(unitPrice(r))} c/u</span>
-        )}
+        <div className="price-row">
+          <b>{money(r[8])}</b>
+          {offer ? (
+            <span className="pill">Oferta {money(r[3])} c/u · antes {money(r[4])}</span>
+          ) : (
+            <span className="muted">{money(unitPrice(r))} c/u</span>
+          )}
+        </div>
       </div>
-    </div>
+    </article>
   );
-}
-
-function headline(share: ShareV1 | null): string {
-  if (!share) return 'Pega el link o código #c=… para ver la lista.';
-  const n = share.p.length;
-  const parts = [
-    `${n} ${n === 1 ? 'producto' : 'productos'}`,
-    share.by ? `Creada por ${share.by}` : '',
-    storeName(share),
-  ].filter(Boolean);
-  return parts.join(' · ') + '. Precios de referencia, pueden variar en tienda.';
 }
 
 export default function App() {
@@ -69,7 +70,25 @@ export default function App() {
   const [msg, setMsg] = useState('');
   const [input, setInput] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [updateAvail, setUpdateAvail] = useState(false);
+  const [route, setRoute] = useState<Route>(() => getRoute());
+  const [theme, setTheme] = useState<Theme>(() => {
+    try {
+      return (localStorage.getItem('ley-theme') as Theme) || 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem('ley-theme', theme);
+    } catch {
+      /* sin almacenamiento */
+    }
+  }, [theme]);
 
   const load = useCallback((code: string) => {
     try {
@@ -77,15 +96,18 @@ export default function App() {
       if (!s || s.v !== 1 || !Array.isArray(s.p)) throw new Error('Código inválido.');
       setShare(s);
       setMsg('');
-      document.getElementById('ver')?.scrollIntoView({ behavior: 'smooth' });
+      setModalOpen(false);
+      setInput('');
+      if (getRoute() !== 'home') window.location.hash = '#/';
     } catch (e) {
-      setShare(null);
       setMsg('No pude leer el código (' + (e as Error).message + ').');
     }
   }, []);
 
   useEffect(() => {
     const boot = async () => {
+      setRoute(getRoute());
+      if (getRoute() !== 'home') return;
       // Link corto de backend: ?c=ABC123
       const qc = new URLSearchParams(window.location.search).get('c');
       if (qc && isShortCode(qc)) {
@@ -113,7 +135,7 @@ export default function App() {
         }
       } catch (e) {
         setShare(null);
-        setMsg('El link trae un código que no pude leer (' + (e as Error).message + '). Pégalo abajo.');
+        setMsg('El link trae un código que no pude leer (' + (e as Error).message + '). Usa Abrir código.');
       }
     };
     boot();
@@ -141,15 +163,18 @@ export default function App() {
     };
   }, []);
 
-  // Cierra el menú con Escape.
+  // Cierra menú/modal con Escape.
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen && !modalOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuOpen(false);
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+        setModalOpen(false);
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [menuOpen]);
+  }, [menuOpen, modalOpen]);
 
   const copyText = async () => {
     if (!share) return;
@@ -207,9 +232,20 @@ export default function App() {
     }
   };
 
-  const go = (id: SectionId) => {
+  const goHome = () => {
     setMenuOpen(false);
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    if (window.location.hash && window.location.hash !== '#/') window.location.hash = '#/';
+    else setRoute('home');
+  };
+
+  const goAyuda = () => {
+    setMenuOpen(false);
+    window.location.hash = '#/ayuda';
+  };
+
+  const openModal = () => {
+    setMenuOpen(false);
+    setModalOpen(true);
   };
 
   return (
@@ -227,18 +263,58 @@ export default function App() {
         </button>
         <div className="topbar-title">
           <b>Mi lista Casa Ley</b>
-          {share?.by && <span className="muted"> · de {share.by}</span>}
+          {route === 'home' && share?.by && <span className="muted"> · de {share.by}</span>}
+        </div>
+        <div className="topbar-actions">
+          <button
+            className="icon-btn"
+            aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+            title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+            onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+          >
+            {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+          </button>
+          {route === 'home' && (
+            <button className="open-btn" onClick={openModal}>
+              Abrir código
+            </button>
+          )}
         </div>
       </header>
 
-      {menuOpen && <div className="overlay" onClick={() => setMenuOpen(false)} />}
+      {(menuOpen || modalOpen) && (
+        <div
+          className="overlay"
+          onClick={() => {
+            setMenuOpen(false);
+            setModalOpen(false);
+          }}
+        />
+      )}
       <nav className={`drawer${menuOpen ? ' open' : ''}`} aria-hidden={!menuOpen}>
-        {MENU.map((m) => (
-          <button key={m.id} onClick={() => go(m.id)}>
-            {m.label}
-          </button>
-        ))}
+        <button onClick={goHome}>Inicio</button>
+        <button onClick={openModal}>Abrir código</button>
+        <button onClick={goAyuda}>Cómo funciona</button>
       </nav>
+
+      {modalOpen && (
+        <div className="modal" role="dialog" aria-modal="true" aria-label="Abrir código">
+          <h2>Abrir código</h2>
+          <p className="muted">Pega el link compartido o el código #c=…</p>
+          <textarea
+            autoFocus
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="https://…/#c=…"
+          />
+          <div className="row">
+            <button className="primary" onClick={() => load(input)}>
+              Ver lista
+            </button>
+            <button onClick={() => setModalOpen(false)}>Cancelar</button>
+          </div>
+        </div>
+      )}
 
       <main>
         {updateAvail && (
@@ -248,72 +324,65 @@ export default function App() {
           </p>
         )}
 
-        <p className="muted">
-          {headline(share)}
-          {BACKEND_URL && <span> · Backend activo</span>}
-        </p>
-
-        <section id="ver" aria-label="Ver lista">
-          <h2>Lista</h2>
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Pega aquí el link compartido o el código #c=…"
-          />
-          <div className="row">
-            <button onClick={() => load(input)}>Ver lista</button>
-          </div>
-          {msg && <div id="msg">{msg}</div>}
-          {share && (
-            <>
-              {share.p.map((r) => (
-                <ProductCard key={r[0]} r={r} />
-              ))}
-              <h3>Total aproximado: {money(shareTotal(share))}</h3>
-              <p className="muted">Puede variar en tienda.</p>
-            </>
-          )}
-        </section>
-
-        <section id="compartir" aria-label="Compartir">
-          <h2>Compartir</h2>
-          {!share ? (
-            <p className="muted">Carga una lista primero para compartirla.</p>
-          ) : (
+        {route === 'ayuda' ? (
+          <section aria-label="Cómo funciona">
+            <h2>Cómo funciona</h2>
+            <ol className="steps">
+              <li>Arma tu carrito en Casa Ley y ábrelo con la extensión.</li>
+              <li>Guárdalo online o copia el link y mándalo por WhatsApp.</li>
+              <li>Quien lo recibe lo ve aquí y, con su sesión, lo clona a su carrito.</li>
+            </ol>
+            <p className="muted">El link lleva solo productos y precios. Nunca tu sesión ni tus datos.</p>
             <div className="row">
-              <button onClick={copyText}>Copiar como texto</button>
-              <button onClick={copyLink}>Copiar link</button>
-              {backendReady && <button onClick={saveOnline}>Guardar online (link corto)</button>}
+              <button onClick={goHome}>Volver a la lista</button>
             </div>
-          )}
-        </section>
-
-        <section id="clonar" aria-label="Pasar a mi carrito">
-          <h2>Pasar a mi carrito</h2>
-          {canCloneHere() ? (
-            <div className="row">
-              <button className="primary" onClick={clone}>
-                Clonar en mi carrito
-              </button>
-            </div>
-          ) : (
-            <p className="muted">
-              ¿Es tu lista? Para pasarla a tu carrito usa la extensión estando en tusuper. Esta página solo
-              muestra.
-            </p>
-          )}
-        </section>
-
-        <section id="ayuda" aria-label="Cómo funciona">
-          <h2>Cómo funciona</h2>
-          <ol className="muted">
-            <li>Arma tu carrito en Casa Ley y ábrelo con la extensión (o pega aquí el link).</li>
-            <li>Compártelo por WhatsApp con el link o el texto.</li>
-            <li>Quien lo recibe lo ve aquí y, con su sesión, lo clona a su carrito.</li>
-          </ol>
-          <p className="muted">El link lleva solo productos y precios. Nunca tu sesión ni tus datos.</p>
-        </section>
+          </section>
+        ) : (
+          <>
+            {!share ? (
+              <div className="empty">
+                <h2>Sin lista todavía</h2>
+                <p className="muted">Te compartieron una lista del súper? Ábrela aquí.</p>
+                <button className="primary big" onClick={openModal}>
+                  Abrir código
+                </button>
+                {msg && <div id="msg">{msg}</div>}
+              </div>
+            ) : (
+              <>
+                <p className="meta-line muted">
+                  {share.p.length} {share.p.length === 1 ? 'producto' : 'productos'}
+                  {share.by ? ` · de ${share.by}` : ''}
+                  {storeName(share) ? ` · ${storeName(share)}` : ''} · Precios de referencia, pueden variar en
+                  tienda.
+                </p>
+                {msg && <div id="msg">{msg}</div>}
+                {share.p.map((r) => (
+                  <ProductCard key={r[0]} r={r} />
+                ))}
+                <div className="total-card">
+                  <span>Total aproximado</span>
+                  <b>{money(shareTotal(share))}</b>
+                </div>
+                <p className="muted">Puede variar en tienda.</p>
+              </>
+            )}
+          </>
+        )}
       </main>
+
+      {route === 'home' && share && (
+        <div className="sharebar" role="toolbar" aria-label="Compartir lista">
+          <button onClick={copyLink}>Copiar link</button>
+          <button onClick={copyText}>Texto</button>
+          {backendReady && <button onClick={saveOnline}>Link corto</button>}
+          {canCloneHere() && (
+            <button className="primary" onClick={clone}>
+              Clonar
+            </button>
+          )}
+        </div>
+      )}
     </>
   );
 }
