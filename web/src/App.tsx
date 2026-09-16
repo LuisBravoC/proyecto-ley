@@ -18,7 +18,7 @@ import {
   type ShareV1,
 } from './lib/share';
 import { backendReady, isShortCode, loadListOnline, saveListOnline } from './lib/backend';
-import { checkForUpdate } from './lib/version';
+import { checkForUpdate, BUILD_LABEL } from './lib/version';
 
 type Route = 'home' | 'ayuda';
 type Theme = 'dark' | 'light';
@@ -420,6 +420,7 @@ export default function App() {
                   <b>{money(shareTotal(share))}</b>
                 </div>
                 <p className="muted">El total final se confirma antes de pagar.</p>
+                <p className="muted build-tag">compilación {BUILD_LABEL}</p>
               </>
             )}
           </>

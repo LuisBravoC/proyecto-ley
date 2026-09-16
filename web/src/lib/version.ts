@@ -3,9 +3,14 @@
 // En dev (sin version.json) o file://, no hace nada.
 
 declare const __BUILD_ID__: string;
+declare const __BUILD_LABEL__: string;
 
 export const BUILD_ID: string =
   typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev';
+
+// Etiqueta visible (commit corto + hora del build) para identificar la compilación.
+export const BUILD_LABEL: string =
+  typeof __BUILD_LABEL__ !== 'undefined' ? __BUILD_LABEL__ : 'dev';
 
 export async function checkForUpdate(): Promise<boolean> {
   try {

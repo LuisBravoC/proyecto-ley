@@ -1,9 +1,22 @@
+import { execSync } from 'node:child_process';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+function shortSha() {
+  if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA.slice(0, 7);
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim();
+  } catch {
+    return 'dev';
+  }
+}
+
 // Id único por build para detectar versión nueva desde la app.
-// En Actions usa el commit sha; local dice 'dev'.
-const BUILD_ID = `${process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 7) : 'dev'}-${Date.now()}`;
+const SHA = shortSha();
+const STAMP = Date.now();
+const BUILD_ID = `${SHA}-${STAMP}`;
+const d = new Date(STAMP);
+const BUILD_LABEL = `${SHA} · ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
 // Emite dist/version.json para que la app compare su versión con la publicada.
 function versionFile() {
@@ -24,5 +37,5 @@ function versionFile() {
 export default defineConfig({
   plugins: [react(), versionFile()],
   base: './',
-  define: { __BUILD_ID__: JSON.stringify(BUILD_ID) },
+  define: { __BUILD_ID__: JSON.stringify(BUILD_ID), __BUILD_LABEL__: JSON.stringify(BUILD_LABEL) },
 });
