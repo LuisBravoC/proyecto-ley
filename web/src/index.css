@@ -1,9 +1,141 @@
-body{font-family:system-ui,Roboto,Arial,sans-serif;color:#222;margin:0;background:#fff}
-main{max-width:760px;margin:0 auto;padding:16px}
-.card{border:1px solid #ddd;border-radius:12px;padding:12px;margin:10px 0;display:flex;gap:12px;align-items:center}
-.card img{width:64px;height:64px;object-fit:cover;border-radius:8px;background:#f5f5f5}
-.muted{color:#666;font-size:.9em}
-button{padding:10px 14px;border-radius:10px;border:1px solid #ccc;background:#fff;cursor:pointer;margin:4px 4px 4px 0;font-size:14px}
-button.primary{background:#0a7b2e;color:#fff;border-color:#0a7b2e}
-textarea{width:100%;box-sizing:border-box;min-height:70px;font-size:13px}
-#msg{background:#f6f6f6;padding:10px;border-radius:8px;white-space:pre-wrap;margin-top:8px}
+:root {
+  --verde: #0a7b2e;
+  --fondo: #fff;
+  --tinta: #222;
+  --suave: #666;
+  --linea: #ddd;
+  --caja: #f6f6f6;
+}
+* { box-sizing: border-box; }
+body {
+  font-family: system-ui, Roboto, Arial, sans-serif;
+  color: var(--tinta);
+  margin: 0;
+  background: var(--fondo);
+}
+main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 12px 16px 48px;
+}
+section { scroll-margin-top: 72px; margin-top: 28px; }
+h1, h2, h3 { line-height: 1.25; }
+
+/* Barra superior + hamburguesa */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--fondo);
+  border-bottom: 1px solid var(--linea);
+}
+.topbar-title { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-btn {
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--linea);
+  background: var(--fondo);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+.menu-btn span { display: block; height: 2px; background: var(--tinta); border-radius: 2px; }
+
+/* Drawer */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 30;
+}
+.drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(300px, 82vw);
+  background: var(--fondo);
+  z-index: 31;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transform: translateX(-105%);
+  transition: transform 0.2s ease;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+}
+.drawer.open { transform: translateX(0); }
+.drawer button {
+  text-align: left;
+  font-size: 16px;
+  padding: 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  min-height: 48px;
+}
+.drawer button:active { background: var(--caja); }
+
+/* Contenido */
+.card {
+  border: 1px solid var(--linea);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 10px 0;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.card img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f5f5f5;
+  flex-shrink: 0;
+}
+.muted { color: var(--suave); font-size: 0.9em; }
+.offer { color: var(--verde); font-size: 0.9em; }
+button {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  background: var(--fondo);
+  cursor: pointer;
+  margin: 4px 4px 4px 0;
+  font-size: 15px;
+  min-height: 44px;
+}
+button.primary { background: var(--verde); color: #fff; border-color: var(--verde); }
+button:focus-visible, .menu-btn:focus-visible, .drawer button:focus-visible {
+  outline: 2px solid var(--verde);
+  outline-offset: 2px;
+}
+.row { display: flex; flex-wrap: wrap; gap: 4px; }
+textarea {
+  width: 100%;
+  min-height: 70px;
+  font-size: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--linea);
+  padding: 10px;
+}
+#msg { background: var(--caja); padding: 10px; border-radius: 8px; white-space: pre-wrap; margin-top: 8px; }
+.banner { background: #fff8e1; border: 1px solid #f0d060; border-radius: 10px; padding: 10px 12px; }
+ol.muted { padding-left: 20px; }
+ol.muted li { margin: 6px 0; }
+
+@media (max-width: 480px) {
+  main { padding: 8px 12px 40px; }
+  .card img { width: 52px; height: 52px; }
+  button { font-size: 16px; }
+}

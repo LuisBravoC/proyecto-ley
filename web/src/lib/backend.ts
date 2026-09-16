@@ -1,11 +1,11 @@
-import { shareTotal } from './share.js';
-import { backendReady, supabase } from './supabase.js';
+import { shareTotal, type ShareV1 } from './share';
+import { backendReady, supabase } from './supabase';
 
 export { backendReady };
 
 // Código corto: 6 chars sin ambigüedad (sin 0/O/1/I).
 const ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-function genCode(n = 6) {
+function genCode(n = 6): string {
   let s = '';
   const a = new Uint8Array(n);
   crypto.getRandomValues(a);
@@ -13,11 +13,11 @@ function genCode(n = 6) {
   return s;
 }
 
-export function isShortCode(s) {
+export function isShortCode(s: unknown): s is string {
   return typeof s === 'string' && /^[A-Za-z0-9]{4,10}$/.test(s.trim());
 }
 
-export async function saveListOnline(share) {
+export async function saveListOnline(share: ShareV1): Promise<string> {
   if (!supabase) throw new Error('Backend no configurado.');
   const row = {
     branch: share.b || null,
@@ -36,11 +36,14 @@ export async function saveListOnline(share) {
   throw new Error('No pude generar código, reintenta.');
 }
 
-export async function loadListOnline(code) {
+export async function loadListOnline(code: string): Promise<ShareV1> {
   if (!supabase) throw new Error('Backend no configurado.');
   const { data, error } = await supabase
-    .from('lists').select('share').eq('code', String(code).trim().toUpperCase()).maybeSingle();
+    .from('lists')
+    .select('share')
+    .eq('code', code.trim().toUpperCase())
+    .maybeSingle();
   if (error) throw error;
   if (!data) throw new Error('código no encontrado o expirado');
-  return data.share;
+  return data.share as ShareV1;
 }
