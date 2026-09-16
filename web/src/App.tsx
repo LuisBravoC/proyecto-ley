@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FiGrid, FiLink, FiList, FiMessageCircle, FiShare2 } from 'react-icons/fi';
 import {
+  BOOKMARKLET_HREF,
   b64urlDecode,
   canCloneHere,
   cloneShareHere,
@@ -31,12 +32,13 @@ import {
   type HistoryEntry,
 } from './lib/history';
 
-type Route = 'home' | 'ayuda' | 'historial';
+type Route = 'home' | 'ayuda' | 'historial' | 'instalar';
 type Theme = 'dark' | 'light';
 
 function getRoute(): Route {
   if (window.location.hash.startsWith('#/ayuda')) return 'ayuda';
   if (window.location.hash.startsWith('#/historial')) return 'historial';
+  if (window.location.hash.startsWith('#/instalar')) return 'instalar';
   return 'home';
 }
 
@@ -439,6 +441,11 @@ export default function App() {
     window.location.hash = '#/historial';
   };
 
+  const goInstalar = () => {
+    setMenuOpen(false);
+    window.location.hash = '#/instalar';
+  };
+
   const openHistory = (e: HistoryEntry) => {
     setMenuOpen(false);
     if (e.kind === 'online') {
@@ -538,6 +545,7 @@ export default function App() {
           <nav className="sidebar-inner" aria-label="Menú principal">
             <button onClick={goHome} className={route === 'home' ? 'active' : ''} aria-current={route === 'home' ? 'page' : undefined}>Inicio</button>
             <button onClick={goHistorial} className={route === 'historial' ? 'active' : ''} aria-current={route === 'historial' ? 'page' : undefined}>Historial</button>
+            <button onClick={goInstalar} className={route === 'instalar' ? 'active' : ''} aria-current={route === 'instalar' ? 'page' : undefined}>Instalar extensión</button>
             <button onClick={goAyuda} className={route === 'ayuda' ? 'active' : ''} aria-current={route === 'ayuda' ? 'page' : undefined}>Cómo funciona</button>
           </nav>
         </aside>
@@ -599,6 +607,63 @@ export default function App() {
                 </div>
               </>
             )}
+          </section>
+        ) : route === 'instalar' ? (
+          <section aria-label="Instalar extensión">
+            <h2>Instalar extensión</h2>
+            <p className="muted">
+              Chrome no deja instalar extensiones desde un botón de una página. Estas son las dos formas:
+            </p>
+            <h3>Opción 1 · Marcador (10 segundos, sin instalar nada)</h3>
+            <p className="muted">
+              Arrastra este enlace a tu barra de marcadores. Después, con tu carrito de Casa Ley abierto,
+              púlsalo y se abre tu lista lista para compartir.
+            </p>
+            <div className="row">
+              <a
+                className="btn-link"
+                href={BOOKMARKLET_HREF}
+                onClick={(e) => {
+                  e.preventDefault();
+                  notify('Arrástralo a tu barra de marcadores, no le des clic aquí.');
+                }}
+              >
+                Compartir lista Ley
+              </a>
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(BOOKMARKLET_HREF);
+                    notify('Código copiado: créalo como marcador manual y pégalo como dirección.');
+                  } catch {
+                    notify('No pude copiar.', true);
+                  }
+                }}
+              >
+                Copiar código
+              </button>
+            </div>
+            <h3>Opción 2 · Extensión completa</h3>
+            <ol className="steps">
+              <li>
+                Descarga el proyecto (
+                <a
+                  href="https://github.com/luisbravoc/proyecto-ley/archive/refs/heads/main.zip"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  .zip
+                </a>
+                ) y descomprímelo.
+              </li>
+              <li>Abre <b>chrome://extensions</b> y activa el modo desarrollador.</li>
+              <li>Pulsa “Cargar descomprimida” y elige la carpeta <b>extension/</b>.</li>
+              <li>Fija el icono y úsalo en tu carrito de Casa Ley.</li>
+            </ol>
+            <p className="muted">A futuro estará en Chrome Web Store para instalarla con un clic.</p>
+            <div className="row">
+              <button onClick={goHome}>Volver a la lista</button>
+            </div>
           </section>
         ) : (
           <>

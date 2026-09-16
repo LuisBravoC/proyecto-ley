@@ -117,7 +117,14 @@ export function storeName(share: ShareV1): string {
   return share.n || '';
 }
 
-// Imágenes: el host real es serviciosapp (.../rails/Images/...). tusuper devuelve HTML.
+// URL pública de la app (para links, extensión y bookmarklet).
+export const VIEWER_HOME = 'https://luisbravoc.github.io/proyecto-ley/';
+
+// Bookmarklet: mismo export que la extensión, sin instalar nada.
+// Se arrastra a la barra de marcadores y se pulsa estando en tusuper.
+const BOOKMARKLET_SRC = `javascript:(function(){var L;try{L=localStorage}catch(e){alert('Úsalo en tu carrito de Casa Ley');return}try{var C=JSON.parse(L.getItem('CART')||'{"products":[]}'),S=JSON.parse(L.getItem('SUCURSAL')||'{}'),U=JSON.parse(L.getItem('USER')||'{}'),N=String(U.name||'').trim().split(/\\s+/)[0]||'',B=N.charAt(0).toUpperCase()+N.slice(1).toLowerCase(),P=(C.products||[]).map(function(p){return[p.ProductId,p.Quantity,p.artdesc,p.special_price,p.normal_price,p.unitmeasure,p.picture_name,p.GRAMS||0,p.total]});if(!P.length){alert('Carrito vacío');return}var O={v:1,b:S.id||'1086',n:S.name||'',by:B,p:P},G=btoa(unescape(encodeURIComponent(JSON.stringify(O)))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');open('${VIEWER_HOME}#c='+G+'&autosave=1','_blank')}catch(e){alert('Falla: ábrelo en tu carrito de Casa Ley')}})()`;
+
+export const BOOKMARKLET_HREF = encodeURI(BOOKMARKLET_SRC).replace(/#/g, '%23');
 const IMG_BASE = 'https://serviciosapp.casaley.com.mx/rails/';
 export function imgUrl(img: string | null | undefined): string | null {
   if (!img) return null;
