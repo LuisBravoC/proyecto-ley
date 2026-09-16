@@ -101,6 +101,14 @@ export function lineTotalNormal(r: ShareItem): number {
   return r[5] === 'KG' ? (n * Number(r[1])) / 1000 : n * Number(r[1]);
 }
 
+// Ahorro total vs precios normales (solo items con oferta).
+export function savingsTotal(share: ShareV1): number {
+  return share.p.reduce((a, r) => {
+    if (!hasOffer(r)) return a;
+    return a + (lineTotalNormal(r) - Number(r[8] || 0));
+  }, 0);
+}
+
 export function qtyText(r: ShareItem): string {
   const qty = r[1];
   const unit = r[5] || 'PZ';

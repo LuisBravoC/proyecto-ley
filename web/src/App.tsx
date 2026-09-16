@@ -7,11 +7,12 @@ import {
   cloneShareHere,
   discountPct,
   hasOffer,
-  lineTotalNormal,
   imgUrl,
+  lineTotalNormal,
   money,
   parseShareFromLocation,
   qtyText,
+  savingsTotal,
   shareToWhatsApp,
   shareTotal,
   storeName,
@@ -717,10 +718,17 @@ export default function App() {
                   ))}
                 </div>
                 <div className="total-card">
-                  <span className="muted">Subtotal</span>
-                  <b>{money(shareTotal(share))}</b>
+                  <div className="total-row">
+                    <span className="muted">Subtotal</span>
+                    <b>{money(shareTotal(share))}</b>
+                  </div>
+                  {savingsTotal(share) > 0 && (
+                    <div className="total-row">
+                      <span className="offer">Ahorras</span>
+                      <b className="offer">{money(savingsTotal(share))}</b>
+                    </div>
+                  )}
                 </div>
-                <p className="muted">El total final se confirma antes de pagar.</p>
               </>
             )}
           </>
