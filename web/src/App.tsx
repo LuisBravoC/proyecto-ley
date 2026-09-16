@@ -11,6 +11,7 @@ import {
   lineTotalNormal,
   money,
   parseShareFromLocation,
+  productUrl,
   qtyText,
   savingsTotal,
   shareToWhatsApp,
@@ -87,10 +88,18 @@ function ProductCard({ r, grid, flash, leaving }: { r: ShareItem; grid: boolean;
   const pct = discountPct(r);
   if (grid) {
     return (
-      <article className={`card grid-card${flash ? ' flash' : ''}${leaving ? ' leaving' : ''}`}>
-        {src && !hideImg && <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />}
+      <article className="card grid-card">
+        {src && !hideImg && (
+          <a href={productUrl(r[0])} target="_blank" rel="noreferrer" aria-label={`Ver ${r[2]} en Casa Ley`}>
+            <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />
+          </a>
+        )}
         <div className="card-body">
-          <b className="pname">{r[2]}</b>
+          <b className="pname">
+            <a href={productUrl(r[0])} target="_blank" rel="noreferrer">
+              {r[2]}
+            </a>
+          </b>
           <span className="muted">{qtyText(r)}</span>
           <div className="price-row">
             <b>{money(r[8])}</b>
@@ -109,9 +118,17 @@ function ProductCard({ r, grid, flash, leaving }: { r: ShareItem; grid: boolean;
   }
   return (
     <article className={`card row-card${flash ? ' flash' : ''}${leaving ? ' leaving' : ''}`}>
-      {src && !hideImg && <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />}
+      {src && !hideImg && (
+        <a href={productUrl(r[0])} target="_blank" rel="noreferrer" aria-label={`Ver ${r[2]} en Casa Ley`}>
+          <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />
+        </a>
+      )}
       <div className="card-body">
-        <b className="pname">{r[2]}</b>
+        <b className="pname">
+          <a href={productUrl(r[0])} target="_blank" rel="noreferrer">
+            {r[2]}
+          </a>
+        </b>
         <span className="muted small">{qtyText(r)}</span>
       </div>
       <div className="row-total">
@@ -160,8 +177,8 @@ export default function App() {
         leaveTimer.current = window.setTimeout(() => setLeaving([]), 500);
       }
       const parts: string[] = [];
-      if (added.length) parts.push(`+${added.length} nuevo(s)`);
-      if (removed.length) parts.push(`−${removed.length} quitado(s)`);
+      if (added.length) parts.push(`${added.length} producto nuevo(s)`);
+      if (removed.length) parts.push(`${removed.length} producto quitado(s)`);
       notify('Lista actualizada: ' + parts.join(', ') + '.');
     },
     [notify],
