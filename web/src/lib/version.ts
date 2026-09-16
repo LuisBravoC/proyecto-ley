@@ -12,6 +12,12 @@ export const BUILD_ID: string =
 export const BUILD_LABEL: string =
   typeof __BUILD_LABEL__ !== 'undefined' ? __BUILD_LABEL__ : 'dev';
 
+// Capacidad de hover del navegador (para diagnosticar apertura por proximidad).
+export const HOVER_CAPABLE: boolean =
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(hover: hover)').matches;
+
 export async function checkForUpdate(): Promise<boolean> {
   try {
     const res = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });

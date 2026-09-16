@@ -19,7 +19,7 @@ import {
   type ShareV1,
 } from './lib/share';
 import { backendReady, isShortCode, loadListOnline, saveListOnline } from './lib/backend';
-import { checkForUpdate, BUILD_LABEL } from './lib/version';
+import { checkForUpdate, BUILD_LABEL, HOVER_CAPABLE } from './lib/version';
 import {
   clearHistory,
   codeFromLocation,
@@ -619,7 +619,9 @@ export default function App() {
                   <span className="muted">Subtotal</span>
                   <b>{money(shareTotal(share))}</b>
                 </div>
-                <p className="muted build-tag">compilación {BUILD_LABEL}</p>
+                <p className="muted build-tag">
+                  compilación {BUILD_LABEL} · hover {HOVER_CAPABLE ? 'sí' : 'no'}
+                </p>
               </>
             )}
           </>
