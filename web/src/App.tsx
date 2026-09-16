@@ -393,28 +393,16 @@ export default function App() {
   return (
     <>
       <header className="topbar">
-        <div
-          className="menu-wrap"
-          onMouseEnter={() => setMenuOpen(true)}
-          onMouseLeave={() => setMenuOpen(false)}
+        <button
+          className="menu-btn"
+          aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
         >
-          <button
-            className="menu-btn"
-            aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
-            aria-expanded={menuOpen}
-            aria-haspopup="menu"
-            onClick={() => setMenuOpen((v) => !v)}
-          >
-            <span />
-            <span />
-            <span />
-          </button>
-          <nav className={`dropdown${menuOpen ? ' open' : ''}`} aria-hidden={!menuOpen}>
-            <button onClick={goHome}>Inicio</button>
-            <button onClick={goHistorial}>Historial</button>
-            <button onClick={goAyuda}>Cómo funciona</button>
-          </nav>
-        </div>
+          <span />
+          <span />
+          <span />
+        </button>
         <div className="topbar-title">
           <b>Mi lista Casa Ley</b>
           {route === 'home' && share?.by && <span className="muted"> · de {share.by}</span>}
@@ -465,7 +453,16 @@ export default function App() {
         </div>
       )}
 
-      <main>
+      <div className="shell">
+        <aside className={`sidebar${menuOpen ? ' open' : ''}`} aria-hidden={!menuOpen}>
+          <nav className="sidebar-inner" aria-label="Menú principal">
+            <button onClick={goHome} className={route === 'home' ? 'active' : ''} aria-current={route === 'home' ? 'page' : undefined}>Inicio</button>
+            <button onClick={goHistorial} className={route === 'historial' ? 'active' : ''} aria-current={route === 'historial' ? 'page' : undefined}>Historial</button>
+            <button onClick={goAyuda} className={route === 'ayuda' ? 'active' : ''} aria-current={route === 'ayuda' ? 'page' : undefined}>Cómo funciona</button>
+          </nav>
+        </aside>
+        <div className="content">
+          <main>
         {updateAvail && (
           <p className="banner">
             Hay una versión más reciente de la página.{' '}
@@ -573,7 +570,9 @@ export default function App() {
             )}
           </>
         )}
-      </main>
+          </main>
+        </div>
+      </div>
 
       {shareOpen && share && (
         <div className="modal sheet" role="dialog" aria-modal="true" aria-label="Compartir lista">
