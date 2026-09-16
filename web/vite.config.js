@@ -15,8 +15,7 @@ function shortSha() {
 const SHA = shortSha();
 const STAMP = Date.now();
 const BUILD_ID = `${SHA}-${STAMP}`;
-const d = new Date(STAMP);
-const BUILD_LABEL = `${SHA} · ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+const BUILD_LABEL = SHA;
 
 // Emite dist/version.json para que la app compare su versión con la publicada.
 function versionFile() {
