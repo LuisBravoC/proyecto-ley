@@ -68,23 +68,26 @@ function MoonIcon() {
   );
 }
 
-function diffShare(prev: ShareV1 | null, next: ShareV1): { added: string[]; removed: number } {
-  if (!prev) return { added: next.p.map((r) => r[0]), removed: 0 };
+function diffShare(
+  prev: ShareV1 | null,
+  next: ShareV1,
+): { added: string[]; removed: ShareItem[] } {
+  if (!prev) return { added: next.p.map((r) => r[0]), removed: [] };
   const before = new Map(prev.p.map((r) => [r[0], r[1]]));
   const added = next.p.filter((r) => before.get(r[0]) !== r[1]).map((r) => r[0]);
   const after = new Set(next.p.map((r) => r[0]));
-  const removed = prev.p.filter((r) => !after.has(r[0])).length;
+  const removed = prev.p.filter((r) => !after.has(r[0]));
   return { added, removed };
 }
 
-function ProductCard({ r, grid, flash }: { r: ShareItem; grid: boolean; flash: boolean }) {
+function ProductCard({ r, grid, flash, leaving }: { r: ShareItem; grid: boolean; flash: boolean; leaving?: boolean }) {
   const [hideImg, setHideImg] = useState(false);
   const src = imgUrl(r[6]);
   const offer = hasOffer(r);
   const pct = discountPct(r);
   if (grid) {
     return (
-      <article className={`card grid-card${flash ? ' flash' : ''}`}>
+      <article className={`card grid-card${flash ? ' flash' : ''}${leaving ? ' leaving' : ''}`}>
         {src && !hideImg && <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />}
         <div className="card-body">
           <b className="pname">{r[2]}</b>
@@ -105,7 +108,7 @@ function ProductCard({ r, grid, flash }: { r: ShareItem; grid: boolean; flash: b
     );
   }
   return (
-    <article className={`card row-card${flash ? ' flash' : ''}`}>
+    <article className={`card row-card${flash ? ' flash' : ''}${leaving ? ' leaving' : ''}`}>
       {src && !hideImg && <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />}
       <div className="card-body">
         <b className="pname">{r[2]}</b>
@@ -125,8 +128,10 @@ function ProductCard({ r, grid, flash }: { r: ShareItem; grid: boolean; flash: b
 export default function App() {
   const [share, setShare] = useState<ShareV1 | null>(null);
   const [flashIds, setFlashIds] = useState<string[]>([]);
+  const [leaving, setLeaving] = useState<ShareItem[]>([]);
   const shareRef = useRef<ShareV1 | null>(null);
   const flashTimer = useRef<number | null>(null);
+  const leaveTimer = useRef<number | null>(null);
   const [toast, setToast] = useState<{ id: number; text: string; err?: boolean } | null>(null);
   const toastTimer = useRef<number | null>(null);
   const notify = useCallback((text: string, err = false) => {
@@ -139,19 +144,24 @@ export default function App() {
     setToast(null);
   }, []);
 
-  // Actualización remota (Realtime/poll): anima altas y cambios, avisa bajas.
+  // Actualización remota (Realtime/poll): anima altas y cambios, desvanece bajas.
   const applyRemoteUpdate = useCallback(
     (ns: ShareV1) => {
       const { added, removed } = diffShare(shareRef.current, ns);
       shareRef.current = ns;
       setShare(ns);
-      if (added.length === 0 && removed === 0) return;
+      if (added.length === 0 && removed.length === 0) return;
       if (flashTimer.current) window.clearTimeout(flashTimer.current);
       setFlashIds(added);
       flashTimer.current = window.setTimeout(() => setFlashIds([]), 1800);
+      if (leaveTimer.current) window.clearTimeout(leaveTimer.current);
+      setLeaving(removed);
+      if (removed.length) {
+        leaveTimer.current = window.setTimeout(() => setLeaving([]), 500);
+      }
       const parts: string[] = [];
       if (added.length) parts.push(`+${added.length} nuevo(s)`);
-      if (removed) parts.push(`−${removed} quitado(s)`);
+      if (removed.length) parts.push(`−${removed.length} quitado(s)`);
       notify('Lista actualizada: ' + parts.join(', ') + '.');
     },
     [notify],
@@ -842,6 +852,11 @@ export default function App() {
                   {share.p.map((r) => (
                     <ProductCard key={r[0]} r={r} grid={view === 'grid'} flash={flashIds.includes(r[0])} />
                   ))}
+                  {leaving
+                    .filter((r) => !share.p.some((s) => s[0] === r[0]))
+                    .map((r) => (
+                      <ProductCard key={'out-' + r[0]} r={r} grid={view === 'grid'} flash={false} leaving />
+                    ))}
                 </div>
                 <div className="total-card">
                   <div className="total-row">
