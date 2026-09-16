@@ -89,17 +89,16 @@ function ProductCard({ r, grid, flash, leaving }: { r: ShareItem; grid: boolean;
   if (grid) {
     return (
       <article className="card grid-card">
-        {src && !hideImg && (
-          <a href={productUrl(r[0])} target="_blank" rel="noreferrer" aria-label={`Ver ${r[2]} en Casa Ley`}>
-            <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />
-          </a>
-        )}
+        <a
+          className="card-link"
+          href={productUrl(r[0])}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`Ver ${r[2]} en Casa Ley`}
+        />
+        {src && !hideImg && <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />}
         <div className="card-body">
-          <b className="pname">
-            <a href={productUrl(r[0])} target="_blank" rel="noreferrer">
-              {r[2]}
-            </a>
-          </b>
+          <b className="pname">{r[2]}</b>
           <span className="muted">{qtyText(r)}</span>
           <div className="price-row">
             <b>{money(r[8])}</b>
@@ -118,17 +117,16 @@ function ProductCard({ r, grid, flash, leaving }: { r: ShareItem; grid: boolean;
   }
   return (
     <article className={`card row-card${flash ? ' flash' : ''}${leaving ? ' leaving' : ''}`}>
-      {src && !hideImg && (
-        <a href={productUrl(r[0])} target="_blank" rel="noreferrer" aria-label={`Ver ${r[2]} en Casa Ley`}>
-          <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />
-        </a>
-      )}
+      <a
+        className="card-link"
+        href={productUrl(r[0])}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={`Ver ${r[2]} en Casa Ley`}
+      />
+      {src && !hideImg && <img src={src} onError={() => setHideImg(true)} alt="" loading="lazy" />}
       <div className="card-body">
-        <b className="pname">
-          <a href={productUrl(r[0])} target="_blank" rel="noreferrer">
-            {r[2]}
-          </a>
-        </b>
+        <b className="pname">{r[2]}</b>
         <span className="muted small">{qtyText(r)}</span>
       </div>
       <div className="row-total">

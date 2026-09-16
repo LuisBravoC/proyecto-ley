@@ -291,8 +291,15 @@ section { scroll-margin-top: 72px; }
   font-size: 0.95em;
 }
 .small { font-size: 0.82em; }
-.card a { color: inherit; text-decoration: none; }
-.card-body a:hover { text-decoration: underline; }
+/* Tarjeta clicable completa (stretched link): manita + realce al hover */
+.card { position: relative; cursor: pointer; }
+.card-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.card:hover { border-color: var(--verde); }
 .offer { color: var(--verde); font-size: 0.9em; font-weight: 600; }
 .pill {
   background: rgba(53, 181, 88, 0.16);
