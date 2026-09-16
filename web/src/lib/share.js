@@ -66,13 +66,10 @@ export function qtyText(r) {
   return qty + (Number(qty) === 1 ? ' pza' : ' pzas');
 }
 
-// Nombre de tienda: el export incluye "n"; mapa local como respaldo.
-const STORES = { 1086: 'Culiacán' };
+// Nombre de tienda: viene dinámico en el link ("n"). El id ("b") se conserva
+// en el dato para futuro backend, pero no se muestra en frontend.
 export function storeName(share) {
-  if (share.n) return `${share.n} (${share.b || '?'})`;
-  const id = share.b;
-  if (id && STORES[id]) return `${STORES[id]} (${id})`;
-  return id ? `Tienda ${id}` : 'Tienda ?';
+  return share.n || '';
 }
 
 // Imágenes: el host real es serviciosapp (.../rails/Images/...). tusuper devuelve HTML.
@@ -89,7 +86,8 @@ export function shareTotal(share) {
 
 export function shareToWhatsApp(share) {
   const lines = share.p.map((r) => `- ${r[2]} (${qtyText(r)}) ${money(r[8])}`);
-  return `Mi lista Casa Ley (${storeName(share)}):\n` + lines.join('\n');
+  const store = storeName(share);
+  return `Mi lista Casa Ley${store ? ` (${store})` : ''}:\n` + lines.join('\n');
 }
 
 // Clonado: solo funciona si la app corre en origen tusuper (misma sesión local).
