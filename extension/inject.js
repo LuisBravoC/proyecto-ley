@@ -133,6 +133,7 @@
       if (!built) return;
       if (built.code === cfg.lastSig) return; // sin cambios: nada que enviar
       pushing = true;
+      setBtnState('Subiendo…');
       try {
         var res = await fetch(FN_URL, {
           method: 'POST',
@@ -143,13 +144,40 @@
           },
           body: JSON.stringify({ code: cfg.code, edit_key: cfg.key, share: built.share }),
         });
-        if (!res.ok) return; // reintenta en el próximo ciclo
+        if (!res.ok) {
+          var errText = 'Error ' + res.status;
+          try {
+            var ej = await res.json();
+            if (ej && ej.error) errText = String(ej.error);
+          } catch (e) { /* usa el HTTP */ }
+          setBtnState(errText, true);
+          return; // reintenta en el próximo ciclo
+        }
         cfg.lastSig = built.code;
         await chrome.storage.local.set({ [AUTO_KEY]: cfg });
+        setBtnState('Sincronizado ✓');
       } finally {
         pushing = false;
       }
     } catch (e) { /* próximo ciclo */ }
+  }
+
+  // Refleja el estado del auto-sync en el botón del drawer (si está visible).
+  var revertTimer = null;
+  function setBtnState(t, sticky) {
+    var b = document.getElementById(BTN_ID);
+    if (!b) return;
+    var s = b.querySelector('span');
+    if (!s) return;
+    s.textContent = t;
+    if (revertTimer) clearTimeout(revertTimer);
+    if (!sticky) {
+      revertTimer = setTimeout(function () {
+        var bb = document.getElementById(BTN_ID);
+        var ss = bb && bb.querySelector('span');
+        if (ss) ss.textContent = 'Compartir';
+      }, 3000);
+    }
   }
   setInterval(autoTick, 5000);
 })();
