@@ -162,6 +162,35 @@ $('btnClone').onclick = async () => {
   } catch (e) { status(friendly(e), 'err'); }
 };
 
+async function autoGet() {
+  const o = await chrome.storage.local.get('leyauto');
+  return o.leyauto || null;
+}
+
+async function refreshAutoBtn() {
+  const c = await autoGet();
+  $('btnAuto').textContent = (c && c.on) ? ('Auto ON · ' + c.code) : 'Activar auto-actualizar';
+}
+
+$('btnAuto').onclick = async () => {
+  const cur = await autoGet();
+  if (cur && cur.on) {
+    cur.on = false;
+    await chrome.storage.local.set({ leyauto: cur });
+    status('Auto-actualizar desactivado.', '');
+    refreshAutoBtn();
+    return;
+  }
+  const code = parseShortCode($('updCode').value || $('importInput').value);
+  if (!code) { status('Pega el link ?c= de tu foto primero.', 'err'); return; }
+  const key = $('updKey').value.trim() || await leyKeyGet(code);
+  if (!key) { status('Pega tu clave de edición.', 'err'); return; }
+  await chrome.storage.local.set({ leyauto: { code: code, key: key, on: true, lastSig: null } });
+  $('updKey').value = key;
+  status('Auto ON para ' + code + ': cada cambio del carrito se sube solo (con esta pestaña abierta).', 'ok');
+  refreshAutoBtn();
+};
+
 $('btnHist').onclick = async () => {
   await chrome.tabs.create({ url: PAGES_URL + '#/historial' });
 };
@@ -226,6 +255,7 @@ $('btnUpdate').onclick = async () => {
 // Al abrir: muestra resumen del carrito actual y versión (como el badge de la página).
 (async () => {
   $('ver').textContent = 'v' + chrome.runtime.getManifest().version;
+  refreshAutoBtn();
   try {
     const r = await readCurrentCart();
     lastCode = r.code;

@@ -16,7 +16,7 @@
     'margin-left:8px', 'white-space:nowrap',
   ].join(';');
 
-  function buildCode() {
+  function buildShareObject() {
     try {
       var CART = JSON.parse(localStorage.getItem('CART') || '{"products":[]}');
       var SUC = JSON.parse(localStorage.getItem('SUCURSAL') || '{}');
@@ -29,11 +29,17 @@
       });
       if (!prods.length) return null;
       var share = { v: 1, b: SUC.id || '1086', n: SUC.name || '', by: by, p: prods };
-      return btoa(unescape(encodeURIComponent(JSON.stringify(share))))
+      var code = btoa(unescape(encodeURIComponent(JSON.stringify(share))))
         .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      return { share: share, code: code };
     } catch (e) {
       return null;
     }
+  }
+
+  function buildCode() {
+    var built = buildShareObject();
+    return built ? built.code : null;
   }
 
   function makeBtn() {
@@ -108,4 +114,42 @@
   if (window.MutationObserver && document.body) {
     new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
   }
+
+  // Auto-sync eficiente: solo empuja cuando el carrito CAMBIÓ.
+  // - Poll cada 5s, solo con pestaña visible y si está activado para una foto.
+  // - Compara la firma del carrito: sin cambios = cero requests.
+  // - Carrito vacío no se empuja (el servidor exige ≥1 producto).
+  var AUTO_KEY = 'leyauto';
+  var FN_URL = 'https://pdkrtsrfaygeungcolde.supabase.co/functions/v1/update-list';
+  var FN_ANON = 'sb_publishable_3jDw8StQcSVaPxGIimaX5Q_-vSLzt5n'; // pública por diseño
+  var pushing = false;
+
+  async function autoTick() {
+    if (document.hidden || pushing) return;
+    try {
+      var cfg = (await chrome.storage.local.get(AUTO_KEY))[AUTO_KEY];
+      if (!cfg || !cfg.on || !cfg.code || !cfg.key) return;
+      var built = buildShareObject();
+      if (!built) return;
+      if (built.code === cfg.lastSig) return; // sin cambios: nada que enviar
+      pushing = true;
+      try {
+        var res = await fetch(FN_URL, {
+          method: 'POST',
+          headers: {
+            'apikey': FN_ANON,
+            'Authorization': 'Bearer ' + FN_ANON,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ code: cfg.code, edit_key: cfg.key, share: built.share }),
+        });
+        if (!res.ok) return; // reintenta en el próximo ciclo
+        cfg.lastSig = built.code;
+        await chrome.storage.local.set({ [AUTO_KEY]: cfg });
+      } finally {
+        pushing = false;
+      }
+    } catch (e) { /* próximo ciclo */ }
+  }
+  setInterval(autoTick, 5000);
 })();
