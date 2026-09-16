@@ -394,21 +394,18 @@ export default function App() {
                   tienda.
                 </p>
                 {msg && <div id="msg">{msg}</div>}
-                <div className="row view-toggle" role="group" aria-label="Vista de lista">
+                <div className="row view-switch-row" aria-label="Vista de lista">
+                  <span className={`muted${view === 'lista' ? ' on' : ''}`}>Lista</span>
                   <button
-                    className={view === 'lista' ? 'primary' : ''}
-                    aria-pressed={view === 'lista'}
-                    onClick={() => setView('lista')}
+                    className={`switch${view === 'grid' ? ' on' : ''}`}
+                    role="switch"
+                    aria-checked={view === 'grid'}
+                    aria-label="Alternar entre vista de lista y cuadrícula"
+                    onClick={() => setView((v) => (v === 'lista' ? 'grid' : 'lista'))}
                   >
-                    Lista
+                    <span className="knob" />
                   </button>
-                  <button
-                    className={view === 'grid' ? 'primary' : ''}
-                    aria-pressed={view === 'grid'}
-                    onClick={() => setView('grid')}
-                  >
-                    Cuadrícula
-                  </button>
+                  <span className={`muted${view === 'grid' ? ' on' : ''}`}>Cuadrícula</span>
                 </div>
                 <div className={view === 'grid' ? 'grid' : ''}>
                   {share.p.map((r) => (
