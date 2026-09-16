@@ -3,9 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#121417" />
     <title>Mi lista Casa Ley</title>
-    <script type="module" crossorigin src="./assets/index-BL62vEwh.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-D3wmh_xa.css">
+    <script>
+      try {
+        document.documentElement.dataset.theme = localStorage.getItem('ley-theme') || 'dark';
+      } catch (e) {
+        document.documentElement.dataset.theme = 'dark';
+      }
+    </script>
+    <script type="module" crossorigin src="./assets/index-DDA94hW0.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DQS6_g6H.css">
   </head>
   <body>
     <div id="root"></div>
