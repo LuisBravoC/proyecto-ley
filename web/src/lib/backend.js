@@ -22,6 +22,7 @@ export async function saveListOnline(share) {
   const row = {
     branch: share.b || null,
     store_name: share.n || null,
+    creator_name: share.by || null,
     share,
     item_count: share.p.length,
     est_total: Math.round(shareTotal(share) * 100) / 100,

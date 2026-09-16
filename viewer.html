@@ -68,7 +68,7 @@ function render(share){
     msg.textContent = 'Código inválido (se esperaba v1 con p=productos).';
     return;
   }
-  meta.textContent = share.p.length + (share.p.length===1?' producto':' productos') + (storeName(share)?' · '+storeName(share):'') + ' · Precios de referencia, pueden variar en tienda.';
+  meta.textContent = share.p.length + (share.p.length===1?' producto':' productos') + (share.by?' · Creada por '+share.by:'') + (storeName(share)?' · '+storeName(share):'') + ' · Precios de referencia, pueden variar en tienda.';
   let total = 0;
   share.p.forEach(function(r){
     const desc=r[2], special=r[3], normal=r[4], img=r[6], line=r[8];
@@ -102,7 +102,8 @@ document.getElementById('btnVer').onclick = function(){
 document.getElementById('btnCopiar').onclick = function(){
   const s = window._share; if(!s){ return; }
   const lines = s.p.map(function(r){ return '- ' + r[2] + ' (' + qtyText(r) + ') ' + fmt(r[8]); });
-  const txt = 'Mi lista Casa Ley' + (storeName(s)?' ('+storeName(s)+')':'') + ':\n' + lines.join('\n');
+  const head = s.by ? ('Lista de ' + s.by + ' · Casa Ley') : 'Mi lista Casa Ley';
+  const txt = head + (storeName(s)?' ('+storeName(s)+')':'') + ':\n' + lines.join('\n');
   const msg = document.getElementById('msg');
   function done(t){ msg.textContent = t; }
   if (navigator.clipboard && navigator.clipboard.writeText) {

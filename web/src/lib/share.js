@@ -87,7 +87,8 @@ export function shareTotal(share) {
 export function shareToWhatsApp(share) {
   const lines = share.p.map((r) => `- ${r[2]} (${qtyText(r)}) ${money(r[8])}`);
   const store = storeName(share);
-  return `Mi lista Casa Ley${store ? ` (${store})` : ''}:\n` + lines.join('\n');
+  const head = share.by ? `Lista de ${share.by} · Casa Ley` : 'Mi lista Casa Ley';
+  return `${head}${store ? ` (${store})` : ''}:\n` + lines.join('\n');
 }
 
 // Clonado: solo funciona si la app corre en origen tusuper (misma sesión local).

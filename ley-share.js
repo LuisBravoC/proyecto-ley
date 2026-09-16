@@ -26,12 +26,18 @@ function getSession(){
   if (!USER.id || !USER.token_web) throw new Error('Sin sesión: inicia sesión en Casa Ley primero (localStorage USER vacío).');
   return { USER, SUC, WEBSESSION };
 }
+// Nombre de pila para "Creada por …". Solo display, nunca email/teléfono.
+function creatorName(n){
+  n = String(n || '').trim().split(/\s+/)[0] || '';
+  return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
+}
 // Compacto v1: [ProductId, Quantity, artdesc, special_price, normal_price, unitmeasure, picture_name, GRAMS, total]
 function leyExportar(){
   const CART = JSON.parse(localStorage.getItem('CART') || '{"products":[]}');
   const SUC = JSON.parse(localStorage.getItem('SUCURSAL') || '{}');
+  const USER = JSON.parse(localStorage.getItem('USER') || '{}');
   const prods = (CART.products || []).map(p => [p.ProductId, p.Quantity, p.artdesc, p.special_price, p.normal_price, p.unitmeasure, p.picture_name, p.GRAMS || 0, p.total]);
-  const share = { v: 1, b: SUC.id || '1086', n: SUC.name || '', p: prods };
+  const share = { v: 1, b: SUC.id || '1086', n: SUC.name || '', by: creatorName(USER.name), p: prods };
   const code = b64urlEncode(share);
   const link = VIEWER_URL + '#c=' + code; // comparte esta URL completa
   console.log('Productos:', prods.length, '| Sucursal:', share.b, '| chars:', code.length);

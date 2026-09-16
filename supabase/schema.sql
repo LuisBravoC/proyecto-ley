@@ -6,6 +6,7 @@ create table if not exists lists (
   code text unique not null,
   branch text,
   store_name text,
+  creator_name text, -- solo nombre de pila, opcional
   share jsonb not null,
   item_count int not null default 0,
   est_total numeric,
@@ -25,3 +26,6 @@ create policy "lists_insert" on lists
 -- Sin update/delete para anon: la app nunca los necesita.
 
 create index if not exists lists_code_idx on lists (code);
+
+-- Migración si ya creaste la tabla antes (corre una vez):
+-- alter table lists add column if not exists creator_name text;

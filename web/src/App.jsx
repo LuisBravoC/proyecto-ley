@@ -137,7 +137,7 @@ export default function App() {
       )}
       <p className="muted">
         {share
-          ? `${share.p.length} ${share.p.length === 1 ? 'producto' : 'productos'}${storeName(share) ? ` · ${storeName(share)}` : ''} · Precios de referencia, pueden variar en tienda.`
+          ? `${share.p.length} ${share.p.length === 1 ? 'producto' : 'productos'}${share.by ? ` · Creada por ${share.by}` : ''}${storeName(share) ? ` · ${storeName(share)}` : ''} · Precios de referencia, pueden variar en tienda.`
           : 'Pega el link o código #c=… para ver la lista.'}
         {BACKEND_URL && <span> · Backend activo</span>}
       </p>

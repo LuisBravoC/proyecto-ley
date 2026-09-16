@@ -13,12 +13,15 @@ const PAGES_URL = 'https://luisbravoc.github.io/proyecto-ley/'; // app React en 
 function readCartFromPage() {
   const CART = JSON.parse(localStorage.getItem('CART') || '{"products":[]}');
   const SUC = JSON.parse(localStorage.getItem('SUCURSAL') || '{}');
+  const USER = JSON.parse(localStorage.getItem('USER') || '{}');
+  let by = String((USER.name || '')).trim().split(/\s+/)[0] || '';
+  by = by.charAt(0).toUpperCase() + by.slice(1).toLowerCase();
   const prods = (CART.products || []).map(function (p) {
     return [p.ProductId, p.Quantity, p.artdesc, p.special_price, p.normal_price,
             p.unitmeasure, p.picture_name, p.GRAMS || 0, p.total];
   });
   if (!prods.length) throw new Error('EMPTY_CART');
-  const share = { v: 1, b: SUC.id || '1086', n: SUC.name || '', p: prods };
+  const share = { v: 1, b: SUC.id || '1086', n: SUC.name || '', by: by, p: prods };
   const json = JSON.stringify(share);
   const code = btoa(unescape(encodeURIComponent(json)))
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
