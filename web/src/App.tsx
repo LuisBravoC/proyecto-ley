@@ -181,6 +181,7 @@ export default function App() {
   const [shareLabel, setShareLabel] = useState('');
   const [savedKey, setSavedKey] = useState<{ code: string; editKey: string } | null>(null);
   const unsubRef = useRef<(() => void) | null>(null);
+  const pollRef = useRef<number | null>(null);
   const [theme, setTheme] = useState<Theme>(() => {
     try {
       return (localStorage.getItem('ley-theme') as Theme) || 'dark';
@@ -284,11 +285,22 @@ export default function App() {
           const mine = loadHistory().find((e) => e.code === upper);
           setHistory(recordHistory(s, 'online', upper, meta.label || undefined, mine?.editKey));
           // Tiempo real: si el dueño la actualiza, se refresca sola.
+          // + poll cada 30s como respaldo (por si Realtime no está activo).
           if (unsubRef.current) unsubRef.current();
           unsubRef.current = subscribeList(upper, (ns) => {
             setShare(ns);
             notify('Lista actualizada.');
           });
+          if (pollRef.current) window.clearInterval(pollRef.current);
+          pollRef.current = window.setInterval(async () => {
+            if (document.hidden) return;
+            try {
+              const { share: ns } = await loadListOnline(upper);
+              setShare((cur) => (JSON.stringify(cur) === JSON.stringify(ns) ? cur : ns));
+            } catch {
+              /* reintenta en el siguiente ciclo */
+            }
+          }, 30000);
         } catch (e) {
           setShare(null);
           setSnapshot(null);
@@ -336,6 +348,7 @@ export default function App() {
     return () => {
       window.removeEventListener('hashchange', boot);
       if (unsubRef.current) unsubRef.current();
+      if (pollRef.current) window.clearInterval(pollRef.current);
     };
   }, []);
 
