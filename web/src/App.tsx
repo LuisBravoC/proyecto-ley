@@ -191,6 +191,8 @@ export default function App() {
   const [shareOpen, setShareOpen] = useState(false);
   const openTimer = useRef<number | null>(null);
   const closeTimer = useRef<number | null>(null);
+  const openedAtRef = useRef(0); // cuándo lo abrió el hover (anti-carrera con el clic)
+  const manualAtRef = useRef(0); // último toggle manual (tregua anti-reapertura)
 
   // Apertura por proximidad (solo con mouse): entra a la zona → abre con
   // retardo; sale de la zona → cierra con retardo. En táctil solo con toque.
@@ -210,12 +212,14 @@ export default function App() {
   };
   const scheduleOpen = () => {
     if (!canHover()) return;
+    if (Date.now() - manualAtRef.current < 800) return; // tregua tras cierre manual
     if (closeTimer.current) {
       window.clearTimeout(closeTimer.current);
       closeTimer.current = null;
     }
     if (menuOpen || openTimer.current) return;
     openTimer.current = window.setTimeout(() => {
+      openedAtRef.current = Date.now();
       setMenuOpen(true);
       openTimer.current = null;
     }, 120);
@@ -605,6 +609,10 @@ export default function App() {
           aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
           aria-expanded={menuOpen}
           onClick={() => {
+            // Si el hover lo acaba de abrir (<500ms), este clic era para abrir:
+            // ignorarlo en vez de cerrarlo por accidente.
+            if (Date.now() - openedAtRef.current < 500) return;
+            manualAtRef.current = Date.now();
             cancelHoverTimers();
             setMenuOpen((v) => !v);
           }}
