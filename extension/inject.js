@@ -5,12 +5,14 @@
 (function () {
   var BTN_ID = 'ley-share-fab';
   var PAGES_URL = 'https://luisbravoc.github.io/proyecto-ley/';
+  var ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>';
   var CSS = [
     'position:fixed', 'right:16px', 'bottom:88px', 'z-index:2147483647',
     'background:#0a7b2e', 'color:#fff', 'border:0', 'border-radius:999px',
     'padding:12px 18px', 'font-size:14px', 'font-weight:700',
     'font-family:system-ui,Roboto,Arial,sans-serif', 'cursor:pointer',
     'box-shadow:0 6px 20px rgba(0,0,0,.35)',
+    'display:inline-flex', 'align-items:center', 'gap:8px',
   ].join(';');
 
   function buildCode() {
@@ -39,13 +41,14 @@
     var b = document.createElement('button');
     b.id = BTN_ID;
     b.type = 'button';
-    b.textContent = 'Compartir lista';
     b.setAttribute('style', CSS);
+    b.innerHTML = ICON + '<span>Compartir lista</span>';
     b.addEventListener('click', function () {
+      var label = b.querySelector('span');
       var code = buildCode();
       if (!code) {
-        b.textContent = 'Carrito vacío';
-        setTimeout(function () { b.textContent = 'Compartir lista'; }, 2000);
+        if (label) label.textContent = 'Carrito vacío';
+        setTimeout(function () { if (label) label.textContent = 'Compartir lista'; }, 2000);
         return;
       }
       window.open(PAGES_URL + '#c=' + code + '&autosave=1', '_blank');
