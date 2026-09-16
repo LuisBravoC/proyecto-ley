@@ -46,10 +46,41 @@ export function money(n) {
   return '$' + Number(n || 0).toFixed(2);
 }
 
+// Precio unitario a mostrar: oferta si existe, si no el normal.
+// (special_price viene null cuando no hay oferta → antes pintaba "$0.00".)
+export function unitPrice(r) {
+  const s = Number(r[3]);
+  return (r[3] != null && !isNaN(s) && s > 0) ? r[3] : r[4];
+}
+
+export function hasOffer(r) {
+  const s = Number(r[3]), n = Number(r[4]);
+  return r[3] != null && !isNaN(s) && s > 0 && s !== n;
+}
+
 export function qtyText(r) {
   const qty = r[1], unit = r[5] || 'PZ', grams = r[7];
-  if (unit === 'KG') return qty + ' g' + (grams ? ` (${grams} g c/u)` : '');
-  return qty + ' ' + unit;
+  if (unit === 'KG') {
+    return qty + ' g' + (grams && Number(grams) !== Number(qty) ? ` (paq. de ${grams} g)` : '');
+  }
+  return qty + (Number(qty) === 1 ? ' pza' : ' pzas');
+}
+
+// Nombre de tienda: el export incluye "n"; mapa local como respaldo.
+const STORES = { 1086: 'Culiacán' };
+export function storeName(share) {
+  if (share.n) return `${share.n} (${share.b || '?'})`;
+  const id = share.b;
+  if (id && STORES[id]) return `${STORES[id]} (${id})`;
+  return id ? `Tienda ${id}` : 'Tienda ?';
+}
+
+// Imágenes: el host real es serviciosapp (.../rails/Images/...). tusuper devuelve HTML.
+const IMG_BASE = 'https://serviciosapp.casaley.com.mx/rails/';
+export function imgUrl(img) {
+  if (!img) return null;
+  if (/^https?:/i.test(img)) return img;
+  return IMG_BASE + String(img).replace(/\\/g, '/').replace(/^\//, '');
 }
 
 export function shareTotal(share) {
@@ -57,8 +88,8 @@ export function shareTotal(share) {
 }
 
 export function shareToWhatsApp(share) {
-  const lines = share.p.map((r) => `- ${r[2]} (${r[1]} ${r[5] || ''}) ${money(r[8])}`);
-  return `Mi lista Casa Ley (suc ${share.b || '?'}):\n` + lines.join('\n');
+  const lines = share.p.map((r) => `- ${r[2]} (${qtyText(r)}) ${money(r[8])}`);
+  return `Mi lista Casa Ley (${storeName(share)}):\n` + lines.join('\n');
 }
 
 // Clonado: solo funciona si la app corre en origen tusuper (misma sesión local).

@@ -18,7 +18,7 @@ function readCartFromPage() {
             p.unitmeasure, p.picture_name, p.GRAMS || 0, p.total];
   });
   if (!prods.length) throw new Error('EMPTY_CART');
-  const share = { v: 1, b: SUC.id || '1086', p: prods };
+  const share = { v: 1, b: SUC.id || '1086', n: SUC.name || '', p: prods };
   const json = JSON.stringify(share);
   const code = btoa(unescape(encodeURIComponent(json)))
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');

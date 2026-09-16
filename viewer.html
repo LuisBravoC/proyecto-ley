@@ -49,6 +49,18 @@ function b64urlDecode(code){
   return JSON.parse(json);
 }
 function fmt(n){ return '$' + Number(n||0).toFixed(2); }
+var STORES = {1086:'Culiacán'};
+var IMG_BASE = 'https://serviciosapp.casaley.com.mx/rails/';
+function unitPrice(r){ var s=Number(r[3]); return (r[3]!=null && !isNaN(s) && s>0) ? r[3] : r[4]; }
+function hasOffer(r){ var s=Number(r[3]), n=Number(r[4]); return r[3]!=null && !isNaN(s) && s>0 && s!==n; }
+function qtyText(r){ var qty=r[1], unit=r[5]||'PZ', grams=r[7];
+  if(unit==='KG') return qty+' g'+((grams && Number(grams)!==Number(qty))?' (paq. de '+grams+' g)':'');
+  return qty+(Number(qty)===1?' pza':' pzas'); }
+function storeName(share){ if(share.n) return share.n+' ('+(share.b||'?')+')';
+  if(share.b && STORES[share.b]) return STORES[share.b]+' ('+share.b+')';
+  return share.b?('Tienda '+share.b):'Tienda ?'; }
+function imgUrl(img){ if(!img) return null; if(/^https?:/i.test(img)) return img;
+  return IMG_BASE+String(img).replace(/\\/g,'/').replace(/^\//,''); }
 
 function render(share){
   const meta = document.getElementById('meta');
@@ -59,27 +71,30 @@ function render(share){
     msg.textContent = 'Código inválido (se esperaba v1 con p=productos).';
     return;
   }
-  meta.textContent = 'Sucursal: ' + (share.b || '?') + ' · ' + share.p.length + ' producto(s). Solo productos, sin tu sesión.';
+  meta.textContent = share.p.length + (share.p.length===1?' producto':' productos') + ' · ' + storeName(share) + ' · Precios de referencia, pueden variar en tienda.';
   let total = 0;
   share.p.forEach(function(r){
-    const id=r[0], qty=r[1], desc=r[2], special=r[3], normal=r[4], unit=r[5], img=r[6], grams=r[7], line=r[8];
+    const desc=r[2], special=r[3], normal=r[4], img=r[6], line=r[8];
     total += Number(line || 0);
     const div = document.createElement('div');
     div.className = 'card';
-    // imagen: Casa Ley usa rutas relativas \\Images\\... ; si no resuelve, se oculta
     let imgHtml = '';
-    if (img) {
-      let src = String(img).replace(/\\/g,'/');
-      if (!/^https?:/.test(src)) src = 'https://tusuper.casaley.com.mx/' + src.replace(/^\//,'');
-      imgHtml = '<img src="'+src+'" onerror="this.style.display=\'none\'" alt="">';
-    }
-    const cantTxt = (unit === 'KG') ? (qty + ' g') + (grams ? ' ('+grams+' g c/u)' : '') : (qty + ' ' + (unit||'PZ'));
-    div.innerHTML = imgHtml + '<div><b>'+desc+'</b><br><span class="muted">'+id+' · '+cantTxt+'</span><br><b>'+fmt(line)+'</b> <span class="muted">c/u '+fmt(special)+'</span></div>';
+    const src = imgUrl(img);
+    if (src) imgHtml = '<img src="'+src+'" onerror="this.style.display=\'none\'" alt="">';
+    const cantTxt = qtyText(r);
+    const priceHtml = hasOffer(r)
+      ? '<b>'+fmt(line)+'</b> <span style="color:#0a7b2e">Oferta '+fmt(special)+' c/u (antes '+fmt(normal)+')</span>'
+      : '<b>'+fmt(line)+'</b> <span class="muted">'+fmt(unitPrice(r))+' c/u</span>';
+    div.innerHTML = imgHtml + '<div><b>'+desc+'</b><br><span class="muted">'+cantTxt+'</span><br>'+priceHtml+'</div>';
     lista.appendChild(div);
   });
   const t = document.createElement('h2');
-  t.textContent = 'Estimado total: ' + fmt(total);
+  t.textContent = 'Total aproximado: ' + fmt(total);
   lista.appendChild(t);
+  const note = document.createElement('p');
+  note.className = 'muted';
+  note.textContent = 'Puede variar en tienda.';
+  lista.appendChild(note);
   window._share = share;
 }
 
@@ -89,8 +104,8 @@ document.getElementById('btnVer').onclick = function(){
 };
 document.getElementById('btnCopiar').onclick = function(){
   const s = window._share; if(!s){ return; }
-  const lines = s.p.map(function(r){ return '- ' + r[2] + ' (' + r[1] + ' ' + (r[5]||'') + ') ' + fmt(r[8]); });
-  const txt = 'Mi lista Casa Ley (suc ' + (s.b||'?') + '):\n' + lines.join('\n');
+  const lines = s.p.map(function(r){ return '- ' + r[2] + ' (' + qtyText(r) + ') ' + fmt(r[8]); });
+  const txt = 'Mi lista Casa Ley (' + storeName(s) + '):\n' + lines.join('\n');
   const msg = document.getElementById('msg');
   function done(t){ msg.textContent = t; }
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -107,7 +122,7 @@ document.getElementById('btnClonar').onclick = async function(){
   const s = window._share;
   if (!s){ msg.textContent = 'Primero pulsa Ver lista.'; return; }
   if (!location.hostname.includes('casaley')) {
-    msg.textContent = 'Para clonar: abre este mismo archivo/link DENTRO de tusuper.casaley.com.mx (ej. como bookmarklet) o usa ley-share.js en consola. Aquí solo puedes ver y copiar.';
+    msg.textContent = 'Esta página solo muestra la lista. Para pasarla a tu carrito, usa la extensión estando en tusuper.casaley.com.mx.';
     return;
   }
   try {

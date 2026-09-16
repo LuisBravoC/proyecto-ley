@@ -1,26 +1,24 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  BACKEND_URL, b64urlDecode, canCloneHere, cloneShareHere,
+  BACKEND_URL, b64urlDecode, canCloneHere, cloneShareHere, hasOffer, imgUrl,
   money, parseShareFromLocation, qtyText, shareToWhatsApp, shareTotal,
+  storeName, unitPrice,
 } from './lib/share.js';
-
-function imgSrc(img) {
-  if (!img) return null;
-  let src = String(img).replace(/\\/g, '/');
-  if (!/^https?:/.test(src)) src = 'https://tusuper.casaley.com.mx/' + src.replace(/^\//, '');
-  return src;
-}
 
 function ProductCard({ r }) {
   const [hideImg, setHideImg] = useState(false);
-  const src = imgSrc(r[6]);
+  const src = imgUrl(r[6]);
+  const offer = hasOffer(r);
   return (
     <div className="card">
       {src && !hideImg && <img src={src} onError={() => setHideImg(true)} alt="" />}
       <div>
         <b>{r[2]}</b><br />
-        <span className="muted">{r[0]} · {qtyText(r)}</span><br />
-        <b>{money(r[8])}</b> <span className="muted">c/u {money(r[3])}</span>
+        <span className="muted">{qtyText(r)}</span><br />
+        <b>{money(r[8])}</b>{' '}
+        {offer
+          ? <span style={{ color: '#0a7b2e' }}>Oferta {money(r[3])} c/u (antes {money(r[4])})</span>
+          : <span className="muted">{money(unitPrice(r))} c/u</span>}
       </div>
     </div>
   );
@@ -89,7 +87,7 @@ export default function App() {
       <h1>Mi lista Casa Ley</h1>
       <p className="muted">
         {share
-          ? `Sucursal: ${share.b || '?'} · ${share.p.length} producto(s). Solo productos, sin tu sesión.`
+          ? `${share.p.length} ${share.p.length === 1 ? 'producto' : 'productos'} · ${storeName(share)} · Precios de referencia, pueden variar en tienda.`
           : 'Pega el link o código #c=… para ver la lista.'}
         {BACKEND_URL && <span> · Backend activo</span>}
       </p>
@@ -99,12 +97,16 @@ export default function App() {
       <button onClick={() => load(input)}>Ver lista</button>
       <button onClick={copyText}>Copiar como texto</button>
       <button onClick={copyLink}>Copiar link</button>
-      <button className="primary" onClick={clone}>Clonar en mi carrito</button>
+      <button className="primary" onClick={clone} style={{ display: canCloneHere() ? '' : 'none' }}>Clonar en mi carrito</button>
+      {!canCloneHere() && share && (
+        <p className="muted">¿Es tu lista? Para pasarla a tu carrito usa la extensión estando en tusuper.</p>
+      )}
       {msg && <div id="msg">{msg}</div>}
       {share && (
         <>
           {share.p.map((r) => <ProductCard key={r[0]} r={r} />)}
-          <h2>Estimado total: {money(shareTotal(share))}</h2>
+          <h2>Total aproximado: {money(shareTotal(share))}</h2>
+          <p className="muted">Puede variar en tienda.</p>
         </>
       )}
     </main>
