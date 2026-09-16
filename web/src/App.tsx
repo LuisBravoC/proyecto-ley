@@ -20,12 +20,24 @@ import {
 } from './lib/share';
 import { backendReady, isShortCode, loadListOnline, saveListOnline } from './lib/backend';
 import { checkForUpdate, BUILD_LABEL } from './lib/version';
+import {
+  clearHistory,
+  codeFromLocation,
+  extractCode,
+  fmtFecha,
+  loadHistory,
+  recordHistory,
+  removeHistory,
+  type HistoryEntry,
+} from './lib/history';
 
-type Route = 'home' | 'ayuda';
+type Route = 'home' | 'ayuda' | 'historial';
 type Theme = 'dark' | 'light';
 
 function getRoute(): Route {
-  return window.location.hash.startsWith('#/ayuda') ? 'ayuda' : 'home';
+  if (window.location.hash.startsWith('#/ayuda')) return 'ayuda';
+  if (window.location.hash.startsWith('#/historial')) return 'historial';
+  return 'home';
 }
 
 function SunIcon() {
@@ -96,6 +108,7 @@ export default function App() {
   const [modalOpen, setModalOpen] = useState(false);
   const [updateAvail, setUpdateAvail] = useState(false);
   const [route, setRoute] = useState<Route>(() => getRoute());
+  const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
   const [theme, setTheme] = useState<Theme>(() => {
     try {
       return (localStorage.getItem('ley-theme') as Theme) || 'dark';
@@ -128,7 +141,28 @@ export default function App() {
     }
   }, [theme]);
 
-  const load = useCallback((code: string) => {
+  const load = useCallback(async (code: string) => {
+    // Código corto online (ej. "RRAQYN") se carga del backend.
+    const found = extractCode(code);
+    if (found && found.kind === 'online') {
+      if (!backendReady) {
+        setMsg('Ese código corto necesita backend (aún no configurado en esta página).');
+        return;
+      }
+      setMsg('Cargando lista…');
+      try {
+        const s = await loadListOnline(found.code);
+        setShare(s);
+        setMsg('');
+        setModalOpen(false);
+        setInput('');
+        setHistory(recordHistory(s, 'online', found.code));
+        if (getRoute() !== 'home') window.location.hash = '#/';
+      } catch (e) {
+        setMsg('No encontré ese código (' + (e as Error).message + ').');
+      }
+      return;
+    }
     try {
       const s = b64urlDecode(code);
       if (!s || s.v !== 1 || !Array.isArray(s.p)) throw new Error('Código inválido.');
@@ -136,6 +170,8 @@ export default function App() {
       setMsg('');
       setModalOpen(false);
       setInput('');
+      const raw = extractCode(code);
+      if (raw && raw.kind === 'link') setHistory(recordHistory(s, 'link', raw.code));
       if (getRoute() !== 'home') window.location.hash = '#/';
     } catch (e) {
       setMsg('No pude leer el código (' + (e as Error).message + ').');
@@ -159,6 +195,7 @@ export default function App() {
           const s = await loadListOnline(qc);
           setShare(s);
           setMsg('');
+          setHistory(recordHistory(s, 'online', qc.trim().toUpperCase()));
         } catch (e) {
           setShare(null);
           setMsg('No encontré ese código (' + (e as Error).message + ').');
@@ -170,6 +207,8 @@ export default function App() {
         if (s) {
           setShare(s);
           setMsg('');
+          const found = codeFromLocation();
+          if (found && found.kind === 'link') setHistory(recordHistory(s, 'link', found.code));
         }
       } catch (e) {
         setShare(null);
@@ -240,6 +279,7 @@ export default function App() {
     setMsg('Guardando online…');
     try {
       const code = await saveListOnline(share);
+      setHistory(recordHistory(share, 'online', code));
       const url = window.location.origin + window.location.pathname + '?c=' + code;
       try {
         await navigator.clipboard.writeText(url);
@@ -279,6 +319,21 @@ export default function App() {
   const goAyuda = () => {
     setMenuOpen(false);
     window.location.hash = '#/ayuda';
+  };
+
+  const goHistorial = () => {
+    setMenuOpen(false);
+    window.location.hash = '#/historial';
+  };
+
+  const openHistory = (e: HistoryEntry) => {
+    setMenuOpen(false);
+    if (e.kind === 'online') {
+      window.location.href = window.location.pathname + '?c=' + e.code;
+    } else {
+      if (window.location.hash === '#c=' + e.code) load(e.code);
+      else window.location.hash = '#c=' + e.code;
+    }
   };
 
   const openModal = () => {
@@ -331,6 +386,7 @@ export default function App() {
       )}
       <nav className={`drawer${menuOpen ? ' open' : ''}`} aria-hidden={!menuOpen}>
         <button onClick={goHome}>Inicio</button>
+        <button onClick={goHistorial}>Historial</button>
         <button onClick={openModal}>Abrir código</button>
         <button onClick={goAyuda}>Cómo funciona</button>
       </nav>
@@ -374,6 +430,43 @@ export default function App() {
             <div className="row">
               <button onClick={goHome}>Volver a la lista</button>
             </div>
+          </section>
+        ) : route === 'historial' ? (
+          <section aria-label="Historial">
+            <h2>Historial</h2>
+            <p className="muted">Listas vistas o guardadas en este navegador. Sin cuenta, sin nube.</p>
+            {history.length === 0 ? (
+              <p className="muted">Aún no hay listas. Abre o guarda una y aparecerá aquí.</p>
+            ) : (
+              <>
+                {history.map((e) => (
+                  <div className="card row-card" key={e.code}>
+                    <div className="card-body">
+                      <b className="pname">{e.title}</b>
+                      <span className="muted small">
+                        {e.kind === 'online' ? `Código ${e.code}` : 'Link local'} · {fmtFecha(e.when)}
+                      </span>
+                    </div>
+                    <div className="row-total">
+                      <b>{money(e.total)}</b>
+                      <div className="row">
+                        <button onClick={() => openHistory(e)}>Abrir</button>
+                        <button onClick={() => setHistory(removeHistory(e.code))}>Borrar</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div className="row">
+                  <button
+                    onClick={() => {
+                      if (window.confirm('¿Borrar todo el historial?')) setHistory(clearHistory());
+                    }}
+                  >
+                    Borrar todo
+                  </button>
+                </div>
+              </>
+            )}
           </section>
         ) : (
           <>
